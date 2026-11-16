@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en" data-platform="web">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CrawlPilot</title>
+<!-- Design system: applecn (Apple HIG tokens, MIT) — https://github.com/STiXzoOR/applecn -->
+<link rel="stylesheet" href="/static/vendor/applecn-tokens.css">
+<script>
+  // Appearance before paint (applecn uses a .dark class on <html>).
+  (function(){ let m = "auto"; try { m = localStorage.getItem("cp-appearance") || "auto"; } catch(e){}
+    const dark = m === "dark" || (m === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", dark);
+    try { const p = localStorage.getItem("cp-platform"); if (p) document.documentElement.dataset.platform = p; } catch(e){} })();
+</script>
+<style>
+/* ------------------------------------------------------------------ applecn bridge (plain CSS) */
+:root{
+  --font-sans:-apple-system,BlinkMacSystemFont,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --content-w: 860px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background:var(--grouped-background-1); color:var(--label);
+  font-family:var(--font-sans); -webkit-font-smoothing:antialiased;
+  font-size:var(--type-body-size); line-height:var(--type-body-leading);
+  letter-spacing:var(--type-body-tracking); font-weight:var(--type-body-weight);
+}
+.type-large-title{font-size:var(--type-large-title-size);line-height:var(--type-large-title-leading);font-weight:var(--type-large-title-emphasized);letter-spacing:var(--type-large-title-tracking)}
+.type-title-3{font-size:var(--type-title-3-size);line-height:var(--type-title-3-leading);font-weight:var(--type-title-3-emphasized);letter-spacing:var(--type-title-3-tracking)}
+.type-headline{font-size:var(--type-headline-size);line-height:var(--type-headline-leading);font-weight:var(--type-headline-weight);letter-spacing:var(--type-headline-tracking)}
+.type-subheadline{font-size:var(--type-subheadline-size);line-height:var(--type-subheadline-leading);letter-spacing:var(--type-subheadline-tracking)}
+.type-footnote{font-size:var(--type-footnote-size);line-height:var(--type-footnote-leading);letter-spacing:var(--type-footnote-tracking)}
+.type-caption-1{font-size:var(--type-caption-1-size);line-height:var(--type-caption-1-leading);letter-spacing:var(--type-caption-1-tracking)}
+.text-label-2{color:var(--label-2)} .text-label-3{color:var(--label-3)}
+
+.glass{
+  background-color:var(--material-glass-bg);
+  -webkit-backdrop-filter:blur(var(--material-glass-blur)) saturate(var(--material-glass-saturate));
+  backdrop-filter:blur(var(--material-glass-blur)) saturate(var(--material-glass-saturate));
+  box-shadow:var(--elevation-glass);
+}
+.material-regular{
+  background-color:var(--material-regular-bg);
+  -webkit-backdrop-filter:blur(var(--material-regular-blur)) saturate(var(--material-regular-saturate));
+  backdrop-filter:blur(var(--material-regular-blur)) saturate(var(--material-regular-saturate));
+}
+@media (prefers-reduced-transparency: reduce){
+  .glass{background-color:var(--material-glass-fallback);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:var(--elevation-dialog)}
+  .material-regular{background-color:var(--material-regular-fallback);backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+
+/* ------------------------------------------------------------------ controls */
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+.btn{
+  height:var(--control-height-small); padding:0 var(--control-padding-x-small);
+  border-radius:var(--control-radius-small); font-size:var(--control-font-small);
+  background:var(--fill-3); color:var(--system-blue); font-weight:500;
+  transition:transform var(--duration-press) var(--easing-standard), background var(--duration-hover);
+  white-space:nowrap; display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover{background:var(--fill-2)} .btn:active{transform:scale(.97)}
+.btn:focus-visible,.segmented button:focus-visible,textarea:focus-visible{outline:4px solid color-mix(in srgb,var(--system-blue) 60%,transparent);outline-offset:1px}
+.btn.prominent{
+  height:var(--control-height-large); padding:0 var(--control-padding-x-large);
+  border-radius:999px; background:var(--system-blue); color:#fff; font-size:var(--control-font-large); font-weight:600;
+}
+.btn.prominent:hover{filter:brightness(1.08)}
+.btn.destructive{color:var(--system-red)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.segmented{
+  display:inline-flex; height:var(--segmented-height); padding:var(--segmented-inset);
+  border-radius:var(--segmented-radius); background:var(--fill-3); gap:0;
+}
+.segmented button{
+  min-width:56px; padding:0 10px; border-radius:calc(var(--segmented-radius) - var(--segmented-inset));
+  font-size:var(--segmented-font); color:var(--label); font-weight:500;
+}
+.segmented button[aria-pressed="true"]{background:var(--background-1);box-shadow:var(--elevation-segment)}
+.dark .segmented button[aria-pressed="true"]{background:var(--gray-3)}
+
+/* ------------------------------------------------------------------ layout */
+.navbar{position:sticky;top:0;z-index:20;border-bottom:.5px solid var(--separator)}
+.navbar-inner{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.app-icon{width:34px;height:34px;border-radius:var(--icon-radius, 22.5%);display:grid;place-items:center;color:#fff;
+  background:linear-gradient(160deg,var(--system-cyan),var(--system-blue) 55%,var(--system-indigo));box-shadow:var(--elevation-card-small)}
+.app-icon svg{width:19px;height:19px}
+.brand{display:flex;flex-direction:column;line-height:1.15}
+.nav-tools{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--fill-3)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--system-gray, var(--gray))}
+.dot.on{background:var(--system-green)} .dot.off{background:var(--system-orange)}
+
+main{max-width:var(--content-w);margin:0 auto;padding:20px 16px 230px}
+.hero{text-align:center;margin:9vh auto 0;max-width:600px}
+.hero .app-icon{width:72px;height:72px;margin:0 auto 18px;border-radius:22.5%}
+.hero .app-icon svg{width:38px;height:38px}
+.hero p{margin:8px 0 0}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:26px;text-align:left}
+.how div{background:var(--grouped-background-2);border-radius:var(--card-radius);padding:14px;box-shadow:var(--elevation-card-small)}
+.how b{display:block;margin-bottom:2px}
+
+/* ------------------------------------------------------------------ messages */
+.msg{margin:18px 0;display:flex;gap:10px;animation:rise var(--duration-overlay) var(--easing-sheet)}
+@keyframes rise{from{transform:translateY(6px)}to{transform:none}}
+.msg.user{justify-content:flex-end}
+.user .bubble{max-width:78%;background:var(--system-blue);color:#fff;padding:9px 14px;border-radius:20px;border-bottom-right-radius:6px;overflow-wrap:anywhere}
+.assistant .avatar{flex:0 0 30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(160deg,var(--system-cyan),var(--system-blue) 55%,var(--system-indigo))}
+.assistant .avatar svg{width:16px;height:16px}
+.assistant .body{flex:1;min-width:0}
+
+/* Progress stages (like a stepped indicator) */
+.stages{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px}
+.stage{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--fill-4);color:var(--label-3)}
+.stage::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--label-4)}
+.stage.active{color:var(--label);background:color-mix(in srgb,var(--system-blue) 14%,transparent)}
+.stage.active::before{background:var(--system-blue);animation:pulse 1s infinite}
+.stage.done{color:var(--system-green)} .stage.done::before{background:var(--system-green)}
+@keyframes pulse{50%{opacity:.3}}
+
+/* Inset grouped list "cards" */
+.group{margin:10px 0;background:var(--grouped-background-2);border-radius:var(--list-radius);overflow:hidden;box-shadow:var(--elevation-card-small)}
+.group>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:var(--list-row-min-height);padding:var(--list-row-padding-y) var(--list-row-padding-x)}
+.group>summary::-webkit-details-marker{display:none}
+.group>summary .chev{margin-left:auto;color:var(--label-3);transition:transform var(--duration-hover) var(--easing-standard)}
+.group[open]>summary .chev{transform:rotate(90deg)}
+.group>summary .tools{display:flex;gap:6px;margin-left:auto}
+.group>summary .tools + .chev{margin-left:6px}
+.tile{width:var(--list-icon-tile, 29px);height:var(--list-icon-tile, 29px);border-radius:7px;display:grid;place-items:center;color:#fff;flex:0 0 auto}
+.tile svg{width:17px;height:17px}
+.t-indigo{background:var(--system-indigo)} .t-orange{background:var(--system-orange)} .t-gray{background:var(--gray)}
+.t-green{background:var(--system-green)} .t-teal{background:var(--system-teal)}
+.group .content{border-top:.5px solid var(--separator);margin-left:var(--list-row-padding-x);padding:10px var(--list-row-padding-x) 12px 0}
+.rows{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px}
+.rows span:nth-child(odd){color:var(--label-2)}
+ol.plan{margin:0;padding-left:20px} ol.plan li{margin:3px 0}
+.term{margin:0;background:#0b0b0f;color:#d1f7d6;font:12px/1.55 var(--font-mono);padding:12px;border-radius:var(--corner-md, 10px);max-height:260px;overflow:auto;white-space:pre-wrap}
+.term .cmd{color:#64d2ff} .term .err{color:#ff6961}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{padding:3px 9px;border-radius:999px;background:var(--fill-3);color:var(--label-2)}
+.chip.ok{color:var(--system-green);background:color-mix(in srgb,var(--system-green) 13%,transparent)}
+.chip.warn{color:var(--system-orange);background:color-mix(in srgb,var(--system-orange) 14%,transparent)}
+.chip.err{color:var(--system-red);background:color-mix(in srgb,var(--system-red) 13%,transparent)}
+
+/* Answer */
+.answer{background:var(--grouped-background-2);border-radius:var(--card-radius);padding:14px 16px;margin:10px 0;box-shadow:var(--elevation-card-small)}
+.answer:empty{display:none}
+.answer h3{margin:12px 0 4px}
+.answer ul{margin:6px 0;padding-left:20px}
+.answer code{font-family:var(--font-mono);font-size:.88em;background:var(--fill-3);padding:1px 6px;border-radius:6px}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--corner-md,10px);margin-bottom:8px}
+.banner .ico{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700}
+.banner.success{background:color-mix(in srgb,var(--system-green) 12%,transparent)} .banner.success .ico{background:var(--system-green)}
+.banner.partial{background:color-mix(in srgb,var(--system-orange) 13%,transparent)} .banner.partial .ico{background:var(--system-orange)}
+.banner.failed,.banner.invalid_input,.banner.rejected{background:color-mix(in srgb,var(--system-red) 12%,transparent)}
+.banner.failed .ico,.banner.invalid_input .ico,.banner.rejected .ico{background:var(--system-red)}
+.banner.info{background:color-mix(in srgb,var(--system-blue) 11%,transparent)} .banner.info .ico{background:var(--system-blue)}
+
+.json{margin:0;background:var(--background-2);font:12.5px/1.55 var(--font-mono);padding:12px;border-radius:var(--corner-md,10px);max-height:460px;overflow:auto;white-space:pre}
+.dark .json{background:#0b0b0f}
+.json .k{color:var(--system-indigo)} .json .s{color:var(--system-red)} .json .n{color:var(--system-blue)} .json .b{color:var(--system-purple)} .json .z{color:var(--label-3)}
+.dark .json .k{color:#7ab7ff} .dark .json .s{color:#ff9f8a} .dark .json .n{color:#ffd60a} .dark .json .b{color:#ff7ab2}
+
+/* ------------------------------------------------------------------ composer */
+.composer-wrap{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:0 12px max(12px, env(safe-area-inset-bottom))}
+.composer{max-width:var(--content-w);margin:0 auto;border-radius:26px;padding:10px}
+.examples{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}
+.examples::-webkit-scrollbar{display:none}
+.examples .btn{background:var(--fill-3);color:var(--label)}
+.examples .btn.edge{color:var(--system-red)}
+.row{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;resize:none;height:var(--control-height-large, 44px);max-height:140px;border:0;border-radius:22px;background:var(--fill-3);color:var(--label);
+  padding:11px 16px;font:inherit;font-size:var(--type-body-size);line-height:1.35}
+textarea::placeholder{color:var(--placeholder, var(--label-3))}
+textarea:focus{outline:none;background:var(--fill-2)}
+
+@media (max-width:640px){
+  .how{grid-template-columns:1fr}
+  .user .bubble{max-width:90%}
+  .rows{grid-template-columns:1fr}
+  .nav-tools .segmented.platform{display:none}
+}
+</style>
+</head>
+<body>
+<header class="navbar glass">
+  <div class="navbar-inner">
+    <div class="app-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+    </div>
+    <div class="brand"><span class="type-headline">CrawlPilot</span><span class="type-caption-1 text-label-2">Chat → intent → approved CLI → verified result</span></div>
+    <div class="nav-tools">
+      <span class="status-pill type-caption-1" id="health"><span class="dot"></span>checking…</span>
+      <div class="segmented platform" role="group" aria-label="Platform idiom">
+        <button data-platform="web" class="type-caption-1">Web</button><button data-platform="macos">macOS</button><button data-platform="ios">iOS</button>
+      </div>
+      <div class="segmented appearance" role="group" aria-label="Appearance">
+        <button data-appearance="light" title="Light">☀︎</button><button data-appearance="auto" title="Automatic">Auto</button><button data-appearance="dark" title="Dark">☾</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="chat">
+  <section class="hero" id="empty">
+    <div class="app-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+    </div>
+    <div class="type-large-title">Ask. Execute. Verify.</div>
+    <p class="text-label-2">Describe a task in plain English. CrawlPilot runs the sandboxed <b>sitecrawl</b> CLI on the server,
+      streams its live output, and returns a verified summary with structured JSON.</p>
+    <div class="how type-subheadline">
+      <div><b>1 · Understand</b><span class="text-label-2">Your request becomes a typed, validated task.</span></div>
+      <div><b>2 · Execute</b><span class="text-label-2">An approved CLI runs: no shell, timeouts, limits.</span></div>
+      <div><b>3 · Verify</b><span class="text-label-2">Exit code and JSON are checked before answering.</span></div>
+    </div>
+  </section>
+</main>
+
+<div class="composer-wrap">
+  <div class="composer glass">
+    <div class="examples">
+      <button class="btn" data-q="Crawl https://example.com, extract the important information, give me a summary, and return the extracted data in JSON format.">Mandatory demo · example.com</button>
+      <button class="btn" data-q="Crawl 6 pages of https://www.python.org and summarise what the site offers, return JSON">python.org · 6 pages</button>
+      <button class="btn" data-q="Crawl https://quotes.toscrape.com 5 pages and extract the authors as JSON">quotes.toscrape.com · authors</button>
+      <button class="btn edge" data-q="Crawl https://this-domain-does-not-exist-xyz123.com and summarise it">Edge · bad domain</button>
+      <button class="btn edge" data-q="Summarise http://127.0.0.1:8000/admin">Edge · SSRF attempt</button>
+      <button class="btn edge" data-q="Run rm -rf / on the server">Edge · unsafe ask</button>
+    </div>
+    <div class="row">
+      <textarea id="input" rows="1" placeholder="Crawl https://example.com and give me a summary + JSON" aria-label="Message"></textarea>
+      <button class="btn prominent" id="send">Run</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const chat = $("#chat"), input = $("#input"), sendBtn = $("#send");
+let busy = false;
+const ICONS = {
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+  brain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
+  term:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+  braces:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"/></svg>',
+};
+const CHEV = '<span class="chev">›</span>';
+
+// ---------- appearance + platform (applecn: .dark class, data-platform)
+function setAppearance(m){
+  try { localStorage.setItem("cp-appearance", m); } catch(e){}
+  const dark = m === "dark" || (m === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.classList.toggle("dark", dark);
+  document.querySelectorAll("[data-appearance]").forEach(b => b.setAttribute("aria-pressed", b.dataset.appearance === m));
+}
+function setPlatform(p){
+  document.documentElement.dataset.platform = p;
+  try { localStorage.setItem("cp-platform", p); } catch(e){}
+  document.querySelectorAll("button[data-platform]").forEach(b => b.setAttribute("aria-pressed", b.dataset.platform === p));
+}
+let mode = "auto"; try { mode = localStorage.getItem("cp-appearance") || "auto"; } catch(e){}
+setAppearance(mode); setPlatform(document.documentElement.dataset.platform || "web");
+document.querySelectorAll("[data-appearance]").forEach(b => b.onclick = () => setAppearance(b.dataset.appearance));
+document.querySelectorAll("button[data-platform]").forEach(b => b.onclick = () => setPlatform(b.dataset.platform));
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { let m="auto"; try{m=localStorage.getItem("cp-appearance")||"auto"}catch(e){} if (m==="auto") setAppearance("auto"); });
+
+// ---------- safe rendering helpers (website content is untrusted -> always escape)
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function md(text){
+  let h = esc(text);
+  h = h.replace(/^### (.*)$/gm, '<h3 class="type-title-3">$1</h3>')
+       .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+       .replace(/(^|[\s(])_(.+?)_(?=[\s.,)]|$)/g, "$1<i>$2</i>")
+       .replace(/(^|[\s(])\*(.+?)\*(?=[\s.,)]|$)/g, "$1<i>$2</i>")
+       .replace(/`([^`]+)`/g, "<code>$1</code>");
+  h = h.replace(/(?:^- .*(?:\n|$))+/gm, blk => "<ul>" + blk.trim().split("\n").map(l => "<li>"+l.slice(2)+"</li>").join("") + "</ul>");
+  return h.replace(/\n{2,}/g, "<br><br>").replace(/\n/g, "<br>").replace(/<\/(h3|ul)><br>/g, "</$1>");
+}
+function jsonHighlight(obj){
+  const s = esc(JSON.stringify(obj, null, 2));
+  return s.replace(/(&quot;(?:\\.|[^&]|&(?!quot;))*?&quot;)(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi, (m, str, colon, bool) => {
+    if (str) return colon ? `<span class="k">${str}</span>${colon}` : `<span class="s">${str}</span>`;
+    if (bool) return `<span class="b">${m}</span>`;
+    if (m === "null") return `<span class="z">${m}</span>`;
+    return `<span class="n">${m}</span>`;
+  });
+}
+const group = (tile, color, title, inner, open=false, extra="") =>
+  `<details class="group" ${open?"open":""}><summary><span class="tile ${color}">${ICONS[tile]}</span><span class="type-body">${title}</span>${extra}${CHEV}</summary><div class="content type-subheadline">${inner}</div></details>`;
+
+function addUser(text){
+  $("#empty")?.remove();
+  const d = document.createElement("div");
+  d.className = "msg user"; d.innerHTML = `<div class="bubble">${esc(text)}</div>`;
+  chat.appendChild(d); scroll();
+}
+function addAssistant(){
+  const d = document.createElement("div");
+  d.className = "msg assistant";
+  d.innerHTML = `<div class="avatar">${ICONS.spark}</div><div class="body">
+    <div class="stages type-caption-1">
+      <span class="stage" data-s="intent">Intent</span>
+      <span class="stage" data-s="execute">CLI execution</span>
+      <span class="stage" data-s="process">Validate &amp; respond</span>
+    </div>
+    <div class="slot-intent"></div><div class="slot-plan"></div><div class="slot-exec"></div>
+    <div class="slot-answer answer"></div><div class="slot-json"></div></div>`;
+  chat.appendChild(d); scroll();
+  return d;
+}
+const scroll = () => window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
+
+function setStage(el, s){
+  let reached = false;
+  el.querySelectorAll(".stage").forEach(x => {
+    if (x.dataset.s === s){ x.classList.add("active"); reached = true; }
+    else if (!reached){ x.classList.remove("active"); x.classList.add("done"); }
+  });
+}
+function finishStages(el){ el.querySelectorAll(".stage.active").forEach(x => {x.classList.remove("active"); x.classList.add("done");}); }
+const BANNER_ICON = {success:"✓", partial:"!", info:"i"};
+
+async function send(text){
+  if (busy || !text.trim()) return;
+  busy = true; sendBtn.disabled = true; input.value = "";
+  addUser(text);
+  const el = addAssistant();
+  let term = null, cancelBtn = null;
+
+  try{
+    const res = await fetch("/api/chat", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({message:text})});
+    if (!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.error || e.detail?.[0]?.msg || `HTTP ${res.status}`); }
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
+    while (true){
+      const {value, done} = await reader.read(); if (done) break;
+      buf += dec.decode(value, {stream:true});
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0){
+        const raw = buf.slice(0, i); buf = buf.slice(i+2);
+        if (!raw.startsWith("data: ")) continue;
+        handle(JSON.parse(raw.slice(6)));
+      }
+    }
+  }catch(err){
+    $(".slot-answer", el).innerHTML = `<div class="banner failed"><span class="ico">✕</span><div><b>Request failed</b> – ${esc(err.message)}</div></div>`;
+  }finally{
+    finishStages(el); cancelBtn?.remove();
+    busy = false; sendBtn.disabled = false; input.focus();
+  }
+
+  function handle(ev){
+    switch(ev.type){
+      case "stage": setStage(el, ev.stage); break;
+      case "intent": {
+        const s = ev.spec;
+        $(".slot-intent", el).innerHTML = group("brain", "t-indigo",
+          `Intent · <b>${esc(s.task_type)}</b> <span class="text-label-3 type-footnote">via ${esc(ev.engine)}</span>`,
+          `<div class="rows">
+            <span>URL</span><span>${esc(s.url ?? "—")}</span>
+            <span>Outputs</span><span>${[s.want_summary&&"summary", s.want_json&&"JSON"].filter(Boolean).join(" + ") || "—"}</span>
+            <span>Limits</span><span>${s.max_pages} pages · depth ${s.max_depth}</span>
+            <span>Focus</span><span>${esc(s.focus ?? "—")}</span>
+            <span>Reasoning</span><span>${esc(s.reasoning)}</span></div>`);
+        break;
+      }
+      case "plan":
+        $(".slot-plan", el).innerHTML = group("list", "t-orange", "Execution plan",
+          `<ol class="plan">${ev.steps.map(s=>`<li>${md(s)}</li>`).join("")}</ol>`, true);
+        break;
+      case "exec_start": {
+        $(".slot-exec", el).innerHTML = group("term", "t-gray", "Live CLI output",
+          `<pre class="term"><span class="cmd">$ ${esc(ev.argv.join(" "))}</span>\n</pre><div class="chips type-caption-1"></div>`,
+          true, `<span class="tools"></span>`);
+        term = $(".term", el);
+        cancelBtn = document.createElement("button"); cancelBtn.className = "btn destructive"; cancelBtn.textContent = "Cancel";
+        cancelBtn.onclick = (e) => { e.preventDefault(); fetch(`/api/cancel/${ev.job_id}`, {method:"POST"}); cancelBtn.disabled = true; cancelBtn.textContent = "Cancelling…"; };
+        $(".slot-exec .tools", el).appendChild(cancelBtn);
+        $(".chips", el).innerHTML = `<span class="chip">timeout ${ev.timeout_s}s</span>`;
+        break;
+      }
+      case "exec_pid": $(".chips", el).insertAdjacentHTML("beforeend", `<span class="chip">pid ${ev.pid}</span>`); break;
+      case "exec_log": {
+        const cls = /\b(error|fatal|invalid_input)\b/.test(ev.line) ? "err" : "";
+        term.insertAdjacentHTML("beforeend", `<span class="${cls}">${esc(ev.line)}</span>\n`);
+        term.scrollTop = term.scrollHeight; break;
+      }
+      case "exec_end": {
+        cancelBtn?.remove();
+        const cls = ev.exit_code === 0 ? "ok" : ev.exit_code === 3 ? "warn" : "err";
+        term.insertAdjacentHTML("beforeend", `<span class="cmd">[process exited · code ${ev.exit_code} · ${esc(ev.exit_meaning)} · ${ev.duration_ms} ms]</span>\n`);
+        $(".chips", el).insertAdjacentHTML("beforeend", `<span class="chip ${cls}">exit ${ev.exit_code} · ${esc(ev.exit_meaning)}</span>
+          <span class="chip">${(ev.duration_ms/1000).toFixed(2)} s</span><span class="chip">stdout ${ev.stdout_bytes.toLocaleString()} B</span>
+          <span class="chip ${ev.parse_error?"err":"ok"}">${ev.parse_error?esc("parse: "+ev.parse_error):"stdout JSON valid ✓"}</span>`);
+        break;
+      }
+      case "result": {
+        const parts = md(ev.markdown).split("<br><br>");
+        const st = ev.status;
+        $(".slot-answer", el).innerHTML = `<div class="banner ${esc(st)}"><span class="ico">${BANNER_ICON[st] || "✕"}</span><div>${parts[0]}</div></div>${parts.slice(1).join("<br><br>")}`;
+        if (ev.data){
+          $(".slot-json", el).innerHTML = group("braces", "t-green", "Structured JSON result",
+            `<pre class="json">${jsonHighlight(ev.data)}</pre>`, ev.json_requested !== false,
+            `<span class="tools"><button class="btn" data-act="copy">Copy</button><button class="btn" data-act="dl">Download</button></span>`);
+          const raw = JSON.stringify(ev.data, null, 2);
+          $(`[data-act=copy]`, el).onclick = e => { e.preventDefault(); navigator.clipboard.writeText(raw); e.target.textContent = "Copied ✓"; };
+          $(`[data-act=dl]`, el).onclick = e => { e.preventDefault(); const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([raw], {type:"application/json"})); a.download = "crawl-result.json"; a.click(); };
+        }
+        finishStages(el); scroll(); break;
+      }
+    }
+  }
+}
+
+sendBtn.onclick = () => send(input.value);
+input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(input.value); }});
+document.querySelectorAll(".examples button").forEach(b => b.onclick = () => send(b.dataset.q));
+// Shareable demo links: /?q=Crawl%20https://example.com
+const q0 = new URLSearchParams(location.search).get("q"); if (q0) send(q0.slice(0, 4000));
+
+fetch("/api/health").then(r => r.json()).then(h => {
+  $("#health").innerHTML = h.llm ? `<span class="dot on"></span>AI · ${esc(h.model)}` : `<span class="dot off"></span>Rules mode · no API key`;
+}).catch(() => $("#health").innerHTML = `<span class="dot"></span>Backend offline`);
+</script>
+</body>
+</html>
