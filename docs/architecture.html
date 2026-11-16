@@ -63,35 +63,13 @@ footer { font-size: 8pt; color: var(--label-3); text-align: center; margin-top: 
   </div>
   <div>
     <h3>Contents</h3>
-    <ol class="toc" style="columns:2;font-size:9.6pt">
-      <li>Executive summary</li>
-      <li>Problem statement and objectives</li>
-      <li>Architecture overview</li>
-      <li>Component design</li>
-      <li>End-to-end request lifecycle</li>
-      <li>Working demonstration · CLI execution design</li>
-      <li>Natural-language understanding</li>
-      <li>Output processing and evidence check</li>
-      <li>Security architecture</li>
-      <li>Reliability and error handling</li>
-      <li>Final JSON structure</li>
-      <li>Technology stack and rationale</li>
-      <li>Testing and verification</li>
-      <li>Requirement traceability</li>
-      <li>Deployment and operation</li>
-      <li>Limitations and roadmap</li>
-      <li>AI usage disclosure</li>
-    </ol>
+    <ol class="toc"><li>Summary</li><li>Architecture Overview</li><li>Component Design</li><li>End-to-End Request Lifecycle</li><li>Working Demonstration</li><li>CLI Execution Design (Core of the Challenge)</li><li>Security Architecture</li><li>Technology Stack and Rationale</li><li>Requirement Traceability</li><li>Limitations and Roadmap</li><li>AI Usage Disclosure</li></ol>
   </div>
 </section>
 
 <!-- ============================== 1 ============================== -->
-<h2>1. Executive Summary</h2>
-<p>Most AI chat applications follow a single pattern: the user's prompt is forwarded to a language model and
-the generated text is displayed. That pattern is unsuitable for practical requests that require real work,
-such as visiting websites, collecting data or running tools, because the model can only describe what it
-would do. It cannot do it, and it cannot prove that it did.</p>
-<p>CrawlPilot keeps the LLM for understanding and summarising, and performs all real work through a dedicated CLI process whose output, logs and exit code are captured and verified.</p>
+<h2>1. Summary</h2>
+<p>CrawlPilot turns a chat request into a controlled CLI run. The LLM only understands the request and writes the summary. A separate crawler process does the real work, and its output, logs and exit code are captured and verified.</p>
 <h3>Key differentiators</h3>
 <ul>
   <li><b>Real CLI execution, not simulated output.</b> The backend starts a separate process, captures stdout,
@@ -106,32 +84,8 @@ would do. It cannot do it, and it cannot prove that it did.</p>
     extractive summariser, so judges can reproduce it with no credentials.</li>
 </ul>
 
-<!-- ============================== 2 ============================== -->
-<h2>2. Problem Statement and Objectives</h2>
-<p>The challenge requires a conversational AI system that translates natural-language instructions into
-controlled, multi-step tasks and executes them by invoking a CLI tool or agent from the backend. The system must
-capture the CLI execution status and output, process or validate the result, and present the final
-response to the user. Merely calling an LLM API and returning generated text does not satisfy the core
-objective.</p>
-<h3>Design objectives</h3>
-<table>
-  <tr><th style="width:28%">Objective</th><th>How the architecture meets it</th></tr>
-  <tr><td>Natural-language task input</td><td>Chat interface accepts free text; an intent layer converts it into a typed task specification.</td></tr>
-  <tr><td>Controlled execution</td><td>Only allow-listed tools can run; arguments are built by code from validated fields, never from raw text.</td></tr>
-  <tr><td>Observable execution</td><td>stderr is streamed line by line to the chat; process ID, duration and exit code are displayed.</td></tr>
-  <tr><td>Verifiable results</td><td>stdout must be one valid JSON document of the expected type; exit codes map to explicit statuses; summary claims are evidence-checked.</td></tr>
-  <tr><td>Safety</td><td>URL and SSRF validation, resource limits, timeouts, robots.txt compliance, secret isolation, prompt-injection fencing.</td></tr>
-  <tr><td>Honesty</td><td>Success is reported only when the process exits cleanly and the output validates; otherwise a failure, partial, timeout or cancellation status is shown with its reason.</td></tr>
-  <tr><td>Reproducibility</td><td>Pure-Python stack, one-command setup, optional LLM, automated tests.</td></tr>
-</table>
-
 <!-- ============================== 3 ============================== -->
-<h2>3. Architecture Overview</h2>
-<p>CrawlPilot uses a four-layer architecture. Each layer has a single responsibility and communicates
-with the next through a narrow, well-defined interface. The presentation layer never executes anything;
-the orchestration layer never interprets website content; the execution layer never sees secrets or
-user prompts; and the intelligence layer never chooses or constructs commands.</p>
-
+<h2>2. Architecture Overview</h2>
 <div class="figure">
 <svg viewBox="0 0 700 560" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif">
  <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#8e8e93"/></marker>
@@ -169,16 +123,8 @@ user prompts; and the intelligence layer never chooses or constructs commands.</
  <path d="M215 330 H170" style="display:none"/>
 </svg></div>
 <div class="caption">Figure 1. Request flow, from the chat message to the CLI execution and the verified response. Red dashed path: requests that are refused before anything executes.</div>
-<h3>Architectural principles</h3>
-<ul>
-  <li><b>Separation of reasoning and execution.</b> The LLM proposes structured data; deterministic code decides what runs. This removes the class of failures where a model "hallucinates" a command or a result.</li>
-  <li><b>Narrow interfaces.</b> The CLI contract is fixed: input is a validated argument vector, output is one JSON document, progress goes to stderr, and outcome is the exit code. This makes the tool independently testable and replaceable.</li>
-  <li><b>Fail closed.</b> Any validation failure stops the pipeline before execution. Any execution failure produces an explicit non-success status.</li>
-  <li><b>Evidence over assertion.</b> The system reports what the process produced, not what the model claims.</li>
-</ul>
-
 <!-- ============================== 4 ============================== -->
-<h2>4. Component Design</h2>
+<h2>3. Component Design</h2>
 <table>
 <tr><th style="width:26%">Component</th><th>Responsibility</th></tr>
 <tr><td>frontend/index.html</td><td>Chat UI: live CLI terminal, status chips, evidence card, JSON viewer, cancel. Escapes all scraped text.</td></tr>
@@ -190,7 +136,7 @@ user prompts; and the intelligence layer never chooses or constructs commands.</
 <tr><td>sitecrawl/cli.py</td><td>Standalone crawler: robots.txt, limits, structured extraction, JSON on stdout, logs on stderr, exit codes.</td></tr>
 </table>
 <!-- ============================== 5 ============================== -->
-<h2>5. End-to-End Request Lifecycle</h2>
+<h2>4. End-to-End Request Lifecycle</h2>
 <p>The following sequence describes the mandatory demonstration request:
 <i>"Crawl https://example.com, extract the important information, give me a summary, and return the extracted data in JSON format."</i></p>
 <table>
@@ -205,7 +151,7 @@ user prompts; and the intelligence layer never chooses or constructs commands.</
   <tr><td>8</td><td>Process</td><td>The responder generates the summary and key points with evidence quotes, runs the deterministic evidence check, and assembles the final JSON (status, source, site, summary, insights, verification, contact, keywords, pages, errors, execution metadata).</td></tr>
   <tr><td>9</td><td>Respond</td><td>The chat shows a status banner (for example "Success – crawled 1 page in 0.7 s, exit code 0"), the summary with ✓ or ⚠ per key point, the evidence card and the JSON viewer.</td></tr>
 </table>
-<h2>Working Demonstration</h2>
+<h2>5. Working Demonstration</h2>
 <p>The screenshots below are from a real run of the application. The request was <i>"Crawl 6 pages of https://www.python.org and summarise what the site offers, return JSON"</i>, run against the live site with Claude Haiku 5.5 through OpenRouter.</p>
 <div class="figure" style="padding:6px"><img src="img/demo-execution.png" style="width:100%;border-radius:10px;display:block"></div>
 <div class="caption">Figure 2. Execution in progress. The interpreted intent (via LLM), the execution plan, and the live output of the <code>sitecrawl</code> CLI process. The status chips show the process ID, timeout, exit code 0, duration (3.77 s), stdout size and the result of JSON validation.</div>
@@ -213,13 +159,6 @@ user prompts; and the intelligence layer never chooses or constructs commands.</
 <div class="caption">Figure 3. Verified result. A success banner reports 6 pages crawled with exit code 0. The summary is grounded in the crawled pages, the evidence check confirms 7 of 7 key points against verbatim quotes, and the structured JSON can be copied or downloaded.</div>
 <!-- ============================== 6 ============================== -->
 <h2>6. CLI Execution Design (Core of the Challenge)</h2>
-<h3>6.1 Tool selection and rationale</h3>
-<p>Existing crawlers were evaluated first, including Crawl4AI's <code>crwl</code>, Firecrawl and ScrapeGraphAI. They are capable, but each
-requires a headless browser installation or a hosted API key, which makes judge reproduction slow and fragile. A purpose-built
-CLI, <code>sitecrawl</code>, was therefore implemented with a contract designed for programmatic control: a deterministic stdout format,
-line-oriented progress on stderr, documented exit codes, and built-in safety limits. The orchestrator's registry design allows
-additional tools, such as <code>crwl</code> for JavaScript-heavy sites, to be added as one entry each.</p>
-
 <h3>6.2 Input handling</h3>
 <p>The CLI never receives free text. The orchestrator builds an argument vector from validated, typed fields only: a normalised URL that has passed
 SSRF checks, and integer limits clamped to hard maxima (25 pages, depth 3). The vector is passed directly to the operating system's process
@@ -248,41 +187,9 @@ in isolated mode (<code>-I</code>), which ignores environment-based module paths
   <tr><td>−9</td><td>Killed</td><td>Terminated by the orchestrator due to timeout or user cancellation; never reported as success.</td></tr>
 </table>
 
-<h3>6.6 Long-running tasks, timeouts and cancellation</h3>
-<p>A configurable wall-clock timeout (90 seconds by default) is enforced by the orchestrator. On expiry, the whole process group receives
-<code>SIGKILL</code> and the result is marked as timed out. Users can cancel a running job from the chat, which calls <code>/api/cancel/{job_id}</code>.
-If the browser disconnects, the job is cancelled automatically. Heartbeat events are emitted every second during quiet periods so the client
-can display elapsed time. The CLI also enforces its own per-request timeout (10 seconds) and a polite inter-request delay.</p>
-
-<!-- ============================== 7 ============================== -->
-<h2>7. Natural-Language Understanding</h2>
-<p>The LLM may only fill a fixed <code>TaskSpec</code> schema (task, URL, limits, outputs); the result is validated with Pydantic before use. Out-of-scope requests are classified as unsupported.</p>
-<h3>Post-validation safeguards</h3>
-<ul>
-  <li><b>URL provenance check:</b> a URL returned by the model is kept only if it appears in the user's original message; otherwise the rule-based extractor is used.</li>
-  <li><b>Re-clamping:</b> page and depth limits are clamped again in code after the model responds, regardless of what the model returned.</li>
-  <li><b>No command authority:</b> the model's output is data. The mapping from task type to tool, and from fields to arguments, is fixed in code.</li>
-  <li><b>Fallback:</b> if no key is configured, the API call fails, or the output does not validate, a deterministic parser extracts the URL, limits, output preferences and focus using regular expressions.</li>
-</ul>
-<!-- ============================== 8 ============================== -->
-<h2>8. Output Processing and Evidence Check</h2>
-<h3>8.1 Validation</h3>
-<p>The responder first checks the execution outcome. If the job was cancelled, timed out, produced no stdout, produced invalid JSON, or crawled zero
-pages, the pipeline returns a failure response that states the precise reason, and no summary is generated. Only validated crawl data continues.</p>
-<h3>8.2 Summarisation with untrusted-content fencing</h3>
-<p>Crawled text is wrapped in <code>&lt;untrusted_website_content&gt;</code> delimiters. The model is instructed to ignore any instructions inside it, to ground every
-statement in the content, and never to invent facts, numbers, emails or names. The summarisation call has no tools attached, so even a successful
-prompt injection cannot trigger an action. The output conforms to an <code>Insights</code> schema: site name, summary, purpose, audience, key points,
-offerings, focus answer, caveats and evidence.</p>
-<h3>8.3 Evidence check</h3>
-<p>For every key point the model must supply a short verbatim quote and the URL of the page it came from. <code>verify.py</code> then normalises
-Unicode, quotation marks, dashes and whitespace and performs a substring match of each quote against the text, title, description and headings of
-the crawled pages, checking the cited page first. No LLM participates in this step, so a fabricated quote cannot verify itself. Each claim is
-labelled <i>verified</i> or <i>unverified</i> (with a reason), and the chat shows the score, for example "6/6 verified against the crawled text".</p>
-<div class="callout"><b>Scope of the check:</b> it proves that the quoted text exists on the crawled site. It does not prove that the key point is a fair
-interpretation of the quote, so each quote is displayed beside its claim for human review.</div>
+<h3>Timeouts and cancellation</h3><p>90-second timeout and a Cancel button; both kill the whole process group, and the result is never reported as a success.</p>
 <!-- ============================== 9 ============================== -->
-<h2>9. Security Architecture</h2>
+<h2>7. Security Architecture</h2>
 <p>The security model assumes three untrusted inputs: the user's message, the model's output, and website content. Controls are layered so that no
 single failure leads to unsafe execution.</p>
 <table>
@@ -298,42 +205,8 @@ single failure leads to unsafe execution.</p>
   <tr><td>Responsible crawling</td><td>robots.txt respected by default (the bypass flag is not exposed to the backend); identifiable user agent; inter-request delay; same-domain scope only.</td></tr>
 </table>
 
-<!-- ============================== 10 ============================== -->
-<h2>10. Reliability and Error Handling</h2>
-<table>
-  <tr><th style="width:28%">Failure scenario</th><th style="width:22%">Detection</th><th>User-visible outcome</th></tr>
-  <tr><td>Missing or malformed URL</td><td>Security validation</td><td>"Invalid input" banner with guidance; no execution.</td></tr>
-  <tr><td>Domain does not resolve</td><td>DNS lookup</td><td>"Invalid input – DNS lookup failed. Is it spelled correctly?"</td></tr>
-  <tr><td>Private or internal target</td><td>IP classification</td><td>"Blocked for safety"; no execution.</td></tr>
-  <tr><td>Unsupported or unsafe request</td><td>Intent classification</td><td>Polite refusal explaining the approved capability.</td></tr>
-  <tr><td>Site unreachable or HTTP error</td><td>Exit code 4</td><td>"Task failed" with the underlying error.</td></tr>
-  <tr><td>Some pages fail</td><td>Exit code 3</td><td>"Partial result" banner; failures listed in JSON.</td></tr>
-  <tr><td>robots.txt disallows</td><td>Exit code 5</td><td>Explanation that the crawl was not performed.</td></tr>
-  <tr><td>Process exceeds time limit</td><td>Orchestrator timer</td><td>Process group killed; "timed out" status; no success claim.</td></tr>
-  <tr><td>User cancels or disconnects</td><td>Cancel endpoint / disconnect check</td><td>Process killed; "cancelled by user".</td></tr>
-  <tr><td>Invalid or oversized stdout</td><td>JSON parse / size cap</td><td>"Task failed" with the parse reason.</td></tr>
-  <tr><td>LLM unavailable or invalid output</td><td>Exception / schema validation</td><td>Automatic fallback to rules and extractive summary; labelled in <code>generated_by</code>.</td></tr>
-  <tr><td>Unexpected server error</td><td>Top-level handler</td><td>"Internal error – nothing was claimed as done."</td></tr>
-</table>
-
-<!-- ============================== 11 ============================== -->
-<h2>11. Final JSON Structure</h2>
-
-<table>
-  <tr><th style="width:24%">Field</th><th>Content</th></tr>
-  <tr><td><code>status</code></td><td>success, partial or failed, derived from the exit code and validation.</td></tr>
-  <tr><td><code>request</code>, <code>source</code></td><td>Interpreted request; start URL, crawl time, pages crawled and failed, robots.txt compliance.</td></tr>
-  <tr><td><code>site</code>, <code>summary</code></td><td>Site name, title, description, language; grounded natural-language summary.</td></tr>
-  <tr><td><code>insights</code></td><td>Purpose, target audience, key points, offerings, answer to the user's specific focus.</td></tr>
-  <tr><td><code>verification</code></td><td>Method, claims total and verified, and per-claim quote, source URL and verdict.</td></tr>
-  <tr><td><code>contact</code>, <code>top_keywords</code>, <code>navigation</code>, <code>pages</code></td><td>Extracted structured data across crawled pages.</td></tr>
-  <tr><td><code>errors</code>, <code>caveats</code></td><td>Per-page failures and limitations of the result.</td></tr>
-  <tr><td><code>execution</code></td><td>Tool, exact command, exit code and meaning, duration, stdout size, timeout and cancellation flags.</td></tr>
-  <tr><td><code>generated_by</code></td><td>Which engines produced the intent and summary (llm, rules, extractive).</td></tr>
-</table>
-
 <!-- ============================== 12 ============================== -->
-<h2>12. Technology Stack and Rationale</h2>
+<h2>8. Technology Stack and Rationale</h2>
 <table>
   <tr><th style="width:20%">Layer</th><th style="width:32%">Technology</th><th>Rationale</th></tr>
   <tr><td>Backend</td><td>Python 3.12, FastAPI, Uvicorn, Pydantic</td><td>Native async subprocess support, first-class streaming responses, strict schema validation.</td></tr>
@@ -344,11 +217,8 @@ single failure leads to unsafe execution.</p>
   <tr><td>Testing</td><td>pytest</td><td>Unit and integration tests, including real CLI runs and timeout behaviour.</td></tr>
 </table>
 
-<!-- ============================== 13 ============================== -->
-<h2>13. Testing and Verification</h2>
-<p><b>21 automated tests</b> (pytest): unsafe-URL rejection (12 cases), secret redaction, intent parsing, CLI contract with a real crawl, secret-free child environment, timeout kill, and evidence-check verdicts. Manually verified end to end via UI and terminal on example.com, python.org and quotes.toscrape.com, plus bad-domain, SSRF and unsafe-command cases.</p>
 <!-- ============================== 14 ============================== -->
-<h2>14. Requirement Traceability</h2>
+<h2>9. Requirement Traceability</h2>
 <table>
   <tr><th style="width:30%">Challenge requirement</th><th>Implementation</th></tr>
   <tr><td>Chat interface with natural-language input</td><td>frontend/index.html; free-text composer, example prompts, shareable <code>?q=</code> links.</td></tr>
@@ -367,11 +237,8 @@ single failure leads to unsafe execution.</p>
   <tr><td>Honest error and partial status</td><td>Success only with clean exit and valid JSON; evidence check.</td></tr>
 </table>
 
-<!-- ============================== 15 ============================== -->
-<h2>15. Deployment and Operation</h2>
-<p>Clone the repository, run <code>./run.sh</code>, open <code>http://localhost:8765</code>. Optional <code>.env</code> with <code>OPENROUTER_API_KEY</code>; without it the app runs in rules mode.</p>
 <!-- ============================== 16 ============================== -->
-<h2>16. Limitations and Roadmap</h2>
+<h2>10. Limitations and Roadmap</h2>
 <ul>
   <li><b>JavaScript-rendered sites:</b> the current crawler parses static HTML. A browser-based tool (for example Crawl4AI or Playwright) can be added as a second registry entry.</li>
   <li><b>Single-process job state:</b> jobs are tracked in memory. Production use would add a job queue (Celery or RQ) and persistent job history.</li>
@@ -381,7 +248,7 @@ single failure leads to unsafe execution.</p>
 </ul>
 
 <!-- ============================== 17 ============================== -->
-<h2>17. AI Usage Disclosure</h2>
+<h2>11. AI Usage Disclosure</h2>
 <p>At runtime, Claude Haiku 5.5 (accessed through the OpenRouter API) is used for intent interpretation and summarisation, always with schema-constrained,
 validated output and with a deterministic fallback. During development, Claude Code (Anthropic's AI coding assistant) was used to help with
 scaffolding, implementation, tests and documentation. The applecn design tokens are vendored unmodified under the MIT licence. The architecture, security
