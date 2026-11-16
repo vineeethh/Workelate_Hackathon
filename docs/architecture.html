@@ -126,7 +126,7 @@ objective.</p>
 </table>
 
 <!-- ============================== 3 ============================== -->
-<h2 class="pb">3. Architecture Overview</h2>
+<h2>3. Architecture Overview</h2>
 <p>CrawlPilot uses a four-layer architecture. Each layer has a single responsibility and communicates
 with the next through a narrow, well-defined interface. The presentation layer never executes anything;
 the orchestration layer never interprets website content; the execution layer never sees secrets or
@@ -190,7 +190,7 @@ user prompts; and the intelligence layer never chooses or constructs commands.</
 <tr><td>sitecrawl/cli.py</td><td>Standalone crawler: robots.txt, limits, structured extraction, JSON on stdout, logs on stderr, exit codes.</td></tr>
 </table>
 <!-- ============================== 5 ============================== -->
-<h2 class="pb">5. End-to-End Request Lifecycle</h2>
+<h2>5. End-to-End Request Lifecycle</h2>
 <p>The following sequence describes the mandatory demonstration request:
 <i>"Crawl https://example.com, extract the important information, give me a summary, and return the extracted data in JSON format."</i></p>
 <table>
@@ -249,7 +249,7 @@ If the browser disconnects, the job is cancelled automatically. Heartbeat events
 can display elapsed time. The CLI also enforces its own per-request timeout (10 seconds) and a polite inter-request delay.</p>
 
 <!-- ============================== 7 ============================== -->
-<h2 class="pb">7. Natural-Language Understanding</h2>
+<h2>7. Natural-Language Understanding</h2>
 <p>The LLM may only fill a fixed <code>TaskSpec</code> schema (task, URL, limits, outputs); the result is validated with Pydantic before use. Out-of-scope requests are classified as unsupported.</p>
 <h3>Post-validation safeguards</h3>
 <ul>
@@ -276,7 +276,7 @@ labelled <i>verified</i> or <i>unverified</i> (with a reason), and the chat show
 <div class="callout"><b>Scope of the check:</b> it proves that the quoted text exists on the crawled site. It does not prove that the key point is a fair
 interpretation of the quote, so each quote is displayed beside its claim for human review.</div>
 <!-- ============================== 9 ============================== -->
-<h2 class="pb">9. Security Architecture</h2>
+<h2>9. Security Architecture</h2>
 <p>The security model assumes three untrusted inputs: the user's message, the model's output, and website content. Controls are layered so that no
 single failure leads to unsafe execution.</p>
 <table>
@@ -342,7 +342,7 @@ single failure leads to unsafe execution.</p>
 <h2>13. Testing and Verification</h2>
 <p><b>21 automated tests</b> (pytest): unsafe-URL rejection (12 cases), secret redaction, intent parsing, CLI contract with a real crawl, secret-free child environment, timeout kill, and evidence-check verdicts. Manually verified end to end via UI and terminal on example.com, python.org and quotes.toscrape.com, plus bad-domain, SSRF and unsafe-command cases.</p>
 <!-- ============================== 14 ============================== -->
-<h2 class="pb">14. Requirement Traceability</h2>
+<h2>14. Requirement Traceability</h2>
 <table>
   <tr><th style="width:30%">Challenge requirement</th><th>Implementation</th></tr>
   <tr><td>Chat interface with natural-language input</td><td>frontend/index.html; free-text composer, example prompts, shareable <code>?q=</code> links.</td></tr>
