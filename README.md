@@ -18,28 +18,20 @@ CrawlPilot is a chat app. You describe a task in plain English, for example *"Cr
 ## Architecture
 
 ```
-┌────────────── Browser (frontend/index.html) ──────────────┐
-│ chat · live CLI terminal · exit-code chips · JSON viewer  │
-└───────────────▲───────────────────────┬───────────────────┘
-                │ Server-Sent Events    │ POST /api/chat, /api/cancel/{job}
-┌───────────────┴───────────────────────▼───────────────────┐
-│ FastAPI  backend/app.py   (pipeline + rate limit)          │
-│  ├─ intent.py        NL → TaskSpec (LLM via llm.py,        │
-│  │                   schema-validated │ rules fallback)    │
-│  ├─ security.py      URL validation, SSRF block, redaction │
-│  ├─ orchestrator.py  tool allow-list → argv → subprocess   │
-│  │                   (no shell, timeout, cancel, rlimits,  │
-│  │                   clean env, stdout/stderr/exit capture)│
-│  └─ responder.py     validate JSON → grounded summary      │
-│                      (untrusted-content fencing) → JSON    │
-└───────────────────────────┬───────────────────────────────┘
-                            │ execve(argv)  (child process)
-┌───────────────────────────▼───────────────────────────────┐
-│ sitecrawl CLI  (sitecrawl/cli.py)                          │
-│ robots.txt · BFS same-domain · page/depth/byte limits ·    │
-│ SSRF re-check after redirects · stdout = 1 JSON doc ·      │
-│ stderr = progress events · exit codes 0/1/2/3/4/5          │
-└────────────────────────────────────────────────────────────┘
+ Browser (frontend/index.html)
+   chat box, live CLI output, JSON viewer
+        │   POST /api/chat  (streamed back live)
+        ▼
+ FastAPI backend (backend/app.py)
+   1. intent.py       understands the request (AI, or simple rules if no key)
+   2. security.py     checks the URL is safe and public
+   3. orchestrator.py runs the approved CLI and captures its output
+   4. responder.py    checks the output, writes the summary and JSON
+   5. verify.py       checks every summary claim against the crawled text
+        │   runs as a separate process (no shell)
+        ▼
+ sitecrawl CLI (sitecrawl/cli.py)
+   crawls the site, prints one JSON result, logs progress, returns an exit code
 ```
 
 ### Why a custom CLI (`sitecrawl`)?
@@ -167,11 +159,18 @@ tests/test_core.py
 ```
 
 ## Tech stack and AI disclosure
-* **Python 3.12, FastAPI, Uvicorn, requests, BeautifulSoup/lxml, Pydantic.** Vanilla HTML/JS frontend with SSE streaming.
-* **UI design system: [applecn](https://github.com/STiXzoOR/applecn)** (MIT). It provides Apple's Human Interface Guidelines as design tokens. Its generated `tokens.css` is vendored unmodified in `frontend/vendor/` along with its license. The chat UI is built on those tokens: the Liquid Glass navigation bar and composer, inset grouped lists, system colours, the HIG type scale and the control metrics. The header has a live **Web / macOS / iOS** idiom switch (applecn's `data-platform`) and a **Light / Auto / Dark** appearance switch. No build step is needed.
-* **LLM:** Claude Haiku 5.5 via **OpenRouter** (`anthropic/claude-haiku-5.5`), or the direct **Anthropic API** (`claude-opus-5-5`). It handles intent parsing and summarisation, with schema-validated JSON. It is optional and has a deterministic fallback.
-* **AI assistance:** the code was built with the help of **Claude Code** (an AI coding assistant), which handled scaffolding, implementation and tests. The team reviewed the architecture, the security design and every component, and can explain all of it.
-* Existing open-source projects we researched (not vendored): Crawl4AI, CrawlGPT, WebSage.
+
+| Part | What we used |
+|---|---|
+| Backend | Python 3.12, FastAPI, Uvicorn, Pydantic |
+| Crawler CLI | Python with `requests` and BeautifulSoup/lxml |
+| Frontend | Plain HTML, CSS and JavaScript (no build step), live updates over Server-Sent Events |
+| UI design | [applecn](https://github.com/STiXzoOR/applecn) (MIT): Apple's design tokens, with a Web / macOS / iOS switch and Light / Dark mode |
+| AI model | Claude Haiku 5.5 through OpenRouter (or the Anthropic API). Optional; the app falls back to simple rules without a key |
+| Testing | pytest (21 tests) |
+| AI coding assistant | Claude Code helped write the code. We reviewed every part and can explain it |
+
+Open-source projects we researched but did not copy: Crawl4AI, CrawlGPT, WebSage.
 
 ## Limitations and next steps
 * Static HTML only. JavaScript-rendered sites would need a browser-based tool (e.g. `crwl` or Playwright) added to the registry.

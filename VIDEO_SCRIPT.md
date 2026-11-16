@@ -24,7 +24,13 @@
 - "Run rm -rf / on the server": rejected, since only approved tools can run.
 - Mention the timeout: a process that runs longer than 90s is killed (process group) and reported as "timed out", never as success. Show `pytest -q` passing with 21 tests.
 
-**4:30 – 5:30 · Security, stack, AI disclosure**
-- No shell, allow-list, clean env (no API keys passed to the CLI), redaction, rate limit, XSS escaping, prompt-injection fencing.
-- Stack: Python, FastAPI, requests/BeautifulSoup, vanilla JS with SSE. Claude Haiku 5.5 via OpenRouter (optional, with a deterministic fallback).
-- Built with help from the Claude Code AI coding assistant. We reviewed and can explain every component.
+**4:30 – 5:30 · Security, tech stack, AI disclosure**
+- Security in one breath: no shell, only an approved tool, URL and private-network checks, timeouts and limits, no API keys passed to the CLI, secrets redacted, website text treated as untrusted.
+- **Tech stack (say this out loud, show the README table):**
+  - Backend: Python 3.12 with FastAPI and Uvicorn; Pydantic for validation.
+  - Crawler CLI: our own `sitecrawl`, written in Python with `requests` and BeautifulSoup.
+  - Frontend: plain HTML, CSS and JavaScript, with live updates over Server-Sent Events. No build step.
+  - UI design: the open-source applecn design system (Apple's design tokens).
+  - AI model: Claude Haiku 5.5 through OpenRouter, used for understanding the request and writing the summary. It's optional, and the app falls back to simple rules without a key.
+  - Testing: pytest, 21 tests.
+- **AI disclosure:** "I built this with the help of Claude Code, an AI coding assistant. I reviewed the code and can explain every part."
