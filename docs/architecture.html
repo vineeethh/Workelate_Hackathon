@@ -1,46 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-platform="web">
 <head>
 <meta charset="utf-8">
 <title>CrawlPilot – System Architecture</title>
+<link rel="stylesheet" href="../frontend/vendor/applecn-tokens.css">
 <style>
-@page { size: A4; margin: 18mm 17mm 18mm 17mm; }
-* { box-sizing: border-box; }
-body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1d1d1f; font-size: 10.2pt; line-height: 1.5; margin: 0; }
-h1 { font-size: 26pt; margin: 0 0 6px; letter-spacing: -0.5px; }
-h2 { font-size: 14.5pt; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1.5px solid #0071e3; color: #0b2a4a; page-break-after: avoid; }
-h3 { font-size: 11.2pt; margin: 14px 0 4px; color: #1d1d1f; page-break-after: avoid; }
-p { margin: 0 0 8px; text-align: justify; }
-ul, ol { margin: 0 0 8px; padding-left: 20px; }
-li { margin: 2px 0; }
-code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.8pt; background: #f2f4f7; padding: 0 4px; border-radius: 3px; }
-table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9.2pt; page-break-inside: avoid; }
-th { background: #0b2a4a; color: #fff; text-align: left; padding: 6px 8px; font-weight: 600; }
-td { border-bottom: 1px solid #e3e6ea; padding: 5px 8px; vertical-align: top; }
-tr:nth-child(even) td { background: #f8f9fb; }
-.cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
-.cover .band { background: linear-gradient(135deg, #0071e3, #5e5ce6); color: #fff; padding: 34px 32px; border-radius: 14px; }
-.cover .band h1 { color: #fff; font-size: 34pt; }
-.cover .band .sub { font-size: 14pt; opacity: .95; margin-top: 4px; }
-.cover .meta td { border: 0; padding: 3px 0; background: none !important; font-size: 10.5pt; }
-.cover .meta td:first-child { color: #6e6e73; width: 46mm; }
-.callout { background: #eef5ff; border-left: 4px solid #0071e3; padding: 9px 12px; margin: 8px 0 12px; border-radius: 0 6px 6px 0; }
-.toc li { margin: 3px 0; }
-.diagram { border: 1px solid #d2d6dc; border-radius: 10px; padding: 12px; margin: 8px 0 12px; page-break-inside: avoid; }
-.layer { border-radius: 8px; padding: 8px 12px; margin: 0; }
-.layer b { display: block; font-size: 10.3pt; }
-.layer span { font-size: 9pt; color: #3a3a3c; }
-.l1 { background: #e8f1fe; border: 1px solid #b6d3fb; }
-.l2 { background: #f1effe; border: 1px solid #cbc6fb; }
-.l3 { background: #e9f8ee; border: 1px solid #b5e3c4; }
-.l4 { background: #fff4e5; border: 1px solid #f6d3a1; }
-.arrow { text-align: center; font-size: 9pt; color: #6e6e73; margin: 3px 0; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
-.mod { background: #fff; border: 1px solid #cbc6fb; border-radius: 6px; padding: 5px 8px; font-size: 8.8pt; }
-.mod b { font-size: 9.2pt; display: inline; }
+@page { size: A4; margin: 16mm 16mm 16mm 16mm; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--label);
+  background: #fff; font-size: 10pt; line-height: 1.5; margin: 0; -webkit-font-smoothing: antialiased; }
+h1 { font-size: 30pt; font-weight: 700; letter-spacing: -0.6px; margin: 0; }
+h2 { font-size: 16pt; font-weight: 700; letter-spacing: -0.3px; margin: 24px 0 8px; color: var(--label); page-break-after: avoid; }
+h2::before { content: ""; display: inline-block; width: 6px; height: 16px; border-radius: 3px; background: var(--system-blue); margin-right: 9px; vertical-align: -2px; }
+h3 { font-size: 11pt; font-weight: 600; margin: 14px 0 4px; color: var(--label); page-break-after: avoid; }
+p { margin: 0 0 8px; color: var(--label); }
+ul, ol { margin: 0 0 8px; padding-left: 18px; } li { margin: 2px 0; }
+code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 8.6pt; background: var(--fill-4, #f2f2f7); padding: 1px 5px; border-radius: 5px; color: var(--label); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 6px 0 12px; font-size: 9pt; page-break-inside: avoid;
+  background: var(--grouped-background-2, #fff); border-radius: 12px; overflow: hidden; border: 0.5px solid var(--separator-opaque, #c6c6c8); }
+th { background: var(--grouped-background-1, #f2f2f7); color: var(--label-2); text-align: left; padding: 7px 10px; font-weight: 600;
+  font-size: 8.4pt; text-transform: uppercase; letter-spacing: .4px; border-bottom: 0.5px solid var(--separator-opaque, #c6c6c8); }
+td { border-bottom: 0.5px solid var(--separator-opaque, #e5e5ea); padding: 6px 10px; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+.cover { height: 262mm; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
+.icon { width: 64px; height: 64px; border-radius: 22.5%; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(160deg, var(--system-cyan), var(--system-blue) 55%, var(--system-indigo)); }
+.eyebrow { font-size: 9pt; font-weight: 600; color: var(--system-blue); letter-spacing: .3px; margin: 22px 0 6px; }
+.lead { font-size: 13pt; color: var(--label-2); margin-top: 6px; }
+.meta { border: 0; background: var(--grouped-background-1, #f2f2f7); }
+.meta td { border: 0; padding: 5px 12px; } .meta td:first-child { color: var(--label-2); width: 44mm; }
+.callout { background: color-mix(in srgb, var(--system-blue) 8%, white); border-radius: 12px; padding: 10px 14px; margin: 8px 0 12px; }
+.toc { columns: 2; font-size: 9.6pt; color: var(--label-2); } .toc li { margin: 3px 0; }
 .pb { page-break-before: always; }
-.small { font-size: 8.8pt; color: #6e6e73; }
-footer { font-size: 8pt; color: #8e8e93; text-align: center; margin-top: 20px; }
+.figure { border-radius: 14px; background: var(--grouped-background-1, #f2f2f7); padding: 10px; margin: 8px 0 6px; page-break-inside: avoid; }
+.caption { font-size: 8.6pt; color: var(--label-2); text-align: center; margin: 4px 0 12px; }
+footer { font-size: 8pt; color: var(--label-3); text-align: center; margin-top: 20px; }
 </style>
 </head>
 <body>
@@ -48,22 +42,19 @@ footer { font-size: 8pt; color: #8e8e93; text-align: center; margin-top: 20px; }
 <!-- ============================== COVER ============================== -->
 <section class="cover">
   <div>
-    <div class="band">
-      <div style="font-size:10pt;letter-spacing:2px;opacity:.85">BUILDSPRINT · ROUND 2 · IMPLEMENTATION CHALLENGE</div>
-      <h1 style="margin-top:14px">CrawlPilot</h1>
-      <div class="sub">System Architecture &amp; Technical Design Document</div>
-      <div style="margin-top:18px;font-size:11pt;opacity:.95">CLI-Driven AI Chat Execution for Complex Tasks</div>
-    </div>
-    <div style="margin-top:28px">
+    <div class="icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+    <div class="eyebrow">BuildSprint Round 2 · Implementation Challenge</div>
+    <h1>CrawlPilot</h1>
+    <div class="lead">System Architecture and Technical Design</div>
+    <div style="margin-top:26px">
       <table class="meta">
-        <tr><td>Document type</td><td>Architecture and design specification</td></tr>
-        <tr><td>Challenge</td><td>CLI-Driven AI Chat Execution for Complex Tasks (WorkElate BuildSprint)</td></tr>
-        <tr><td>Mandatory use case</td><td>Website crawling, summarisation and structured JSON extraction</td></tr>
-        <tr><td>Repository</td><td>https://github.com/vineeethh/Workelite_Hackathon</td></tr>
-        <tr><td>Version / date</td><td>1.0 · 16 November 2026</td></tr>
+        <tr><td>Challenge</td><td>CLI-Driven AI Chat Execution for Complex Tasks</td></tr>
+        <tr><td>Use case</td><td>Website crawling, summarisation and structured JSON extraction</td></tr>
+        <tr><td>Repository</td><td>github.com/vineeethh/Workelite_Hackathon</td></tr>
+        <tr><td>Version</td><td>1.0 · 16 November 2026</td></tr>
       </table>
     </div>
-    <div class="callout" style="margin-top:22px">
+    <div class="callout" style="margin-top:18px">
       <b>In one sentence:</b> CrawlPilot is a conversational application that converts a natural-language
       request into a validated, allow-listed CLI execution on the backend, monitors and captures that
       process (stdout, stderr, exit code), verifies the result, and returns an evidence-checked summary
@@ -151,28 +142,43 @@ with the next through a narrow, well-defined interface. The presentation layer n
 the orchestration layer never interprets website content; the execution layer never sees secrets or
 user prompts; and the intelligence layer never chooses or constructs commands.</p>
 
-<div class="diagram">
-  <div class="layer l1"><b>Layer 1 · Presentation: Chat interface (frontend/index.html)</b>
-    <span>Message composer · live CLI terminal · stage indicator · execution status chips · evidence-check card · JSON viewer (copy and download) · cancel control. Plain HTML, CSS and JavaScript styled with the applecn design system.</span></div>
-  <div class="arrow">▼ HTTP POST /api/chat &nbsp;·&nbsp; ▲ Server-Sent Events stream (intent, plan, logs, exit status, result) &nbsp;·&nbsp; POST /api/cancel/{job}</div>
-  <div class="layer l2"><b>Layer 2 · Orchestration: FastAPI backend (backend/app.py)</b>
-    <span>Request pipeline, rate limiting, job tracking, streaming. Coordinates the following modules:</span>
-    <div class="grid">
-      <div class="mod"><b>intent.py</b>: natural language → typed TaskSpec (LLM or rules)</div>
-      <div class="mod"><b>security.py</b>: URL validation, SSRF block, secret redaction</div>
-      <div class="mod"><b>orchestrator.py</b>: tool allow-list, argv builder, process runner</div>
-      <div class="mod"><b>responder.py</b>: output validation, summary, final JSON</div>
-      <div class="mod"><b>verify.py</b>: deterministic evidence check of claims</div>
-      <div class="mod"><b>llm.py</b>: provider layer (OpenRouter / Anthropic) with schema validation</div>
-    </div></div>
-  <div class="arrow">▼ execve(argv) as a separate process: no shell, clean environment, own process group, rlimits &nbsp;·&nbsp; ▲ stdout (JSON) · stderr (logs) · exit code</div>
-  <div class="layer l3"><b>Layer 3 · Execution: sitecrawl CLI (sitecrawl/cli.py)</b>
-    <span>Bounded breadth-first crawler: robots.txt compliance, same-domain traversal, page, depth, byte and time limits, SSRF re-validation after redirects, structured extraction, one JSON document on stdout, progress events on stderr, documented exit codes.</span></div>
-  <div class="arrow">▼ HTTPS GET (polite user agent, crawl delay)</div>
-  <div class="layer l4"><b>Layer 4 · External: public websites, plus the LLM API (OpenRouter → Claude Haiku 5.5)</b>
-    <span>Website content is treated as untrusted data. The LLM is called only by the orchestration layer, only for intent parsing and summarisation, and only with schema-constrained output.</span></div>
-</div>
-
+<div class="figure">
+<svg viewBox="0 0 700 560" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif">
+ <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#8e8e93"/></marker>
+ <marker id="rr" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#ff3b30"/></marker></defs>
+ <style>.b{fill:#fff;stroke:#c6c6c8;stroke-width:1}.t{font-size:12.5px;font-weight:600;fill:#1d1d1f}.s{font-size:10px;fill:#6e6e73}
+ .l{stroke:#8e8e93;stroke-width:1.4;fill:none;marker-end:url(#ar)}.r{stroke:#ff3b30;stroke-width:1.3;fill:none;stroke-dasharray:4 3;marker-end:url(#rr)}
+ .rt{font-size:9.5px;fill:#ff3b30}.lab{font-size:9.5px;fill:#6e6e73}</style>
+ <!-- lane labels -->
+ <text x="20" y="22" class="lab" font-weight="600">BROWSER</text><text x="20" y="112" class="lab" font-weight="600">BACKEND · FastAPI</text><text x="20" y="432" class="lab" font-weight="600">EXECUTION · OS process</text>
+ <!-- 1 user -->
+ <rect x="230" y="30" width="240" height="50" rx="12" class="b" style="stroke:#007aff"/><text x="350" y="51" text-anchor="middle" class="t">1 · User sends request in chat</text><text x="350" y="67" text-anchor="middle" class="s">"Crawl https://example.com … return JSON"</text>
+ <path d="M350 80 V118" class="l"/><text x="358" y="103" class="lab">POST /api/chat (SSE stream opens)</text>
+ <!-- 2 intent -->
+ <rect x="230" y="120" width="240" height="50" rx="12" class="b" style="stroke:#5856d6"/><text x="350" y="141" text-anchor="middle" class="t">2 · Intent layer</text><text x="350" y="157" text-anchor="middle" class="s">LLM → typed TaskSpec (rules fallback)</text>
+ <path d="M350 170 V196" class="l"/>
+ <!-- 3 decision -->
+ <polygon points="350,198 455,236 350,274 245,236" class="b" style="stroke:#ff9500"/><text x="350" y="233" text-anchor="middle" class="t">3 · Safe &amp; supported?</text><text x="350" y="249" text-anchor="middle" class="s">URL, DNS, private-IP, scope</text>
+ <path d="M455 236 H560" class="r"/><rect x="562" y="214" width="122" height="44" rx="10" fill="#fff0ef" stroke="#ff3b30"/><text x="623" y="233" text-anchor="middle" class="t" style="fill:#d70015;font-size:11px">Refuse / Invalid</text><text x="623" y="248" text-anchor="middle" class="rt">nothing executes</text>
+ <text x="470" y="229" class="rt">no</text><text x="358" y="290" class="lab">yes</text>
+ <path d="M350 274 V308" class="l"/>
+ <!-- 4 orchestrator -->
+ <rect x="215" y="310" width="270" height="56" rx="12" class="b" style="stroke:#34c759"/><text x="350" y="331" text-anchor="middle" class="t">4 · Orchestrator</text><text x="350" y="346" text-anchor="middle" class="s">allow-listed tool · argv from typed fields</text><text x="350" y="359" text-anchor="middle" class="s">no shell · clean env · rlimits · 90 s timeout</text>
+ <path d="M350 366 V440" class="l"/><text x="358" y="398" class="lab">create_subprocess_exec(argv)</text>
+ <!-- 5 CLI -->
+ <rect x="215" y="442" width="270" height="56" rx="12" class="b" style="stroke:#1d1d1f;stroke-width:1.4"/><text x="350" y="463" text-anchor="middle" class="t">5 · sitecrawl CLI</text><text x="350" y="478" text-anchor="middle" class="s">robots.txt · BFS · page/depth/size limits</text><text x="350" y="491" text-anchor="middle" class="s">SSRF re-check after redirects</text>
+ <path d="M485 470 H560" class="l"/><rect x="562" y="448" width="122" height="44" rx="10" class="b"/><text x="623" y="467" text-anchor="middle" class="t" style="font-size:11px">Public website</text><text x="623" y="482" text-anchor="middle" class="s">HTTPS GET</text>
+ <!-- outputs back up -->
+ <path d="M215 470 H130 V340" class="l"/><text x="40" y="520" class="lab">stdout = JSON</text><text x="40" y="533" class="lab">stderr = live logs</text><text x="40" y="546" class="lab">exit code = status</text>
+ <path d="M130 470 V505" style="stroke:#8e8e93;stroke-width:1;stroke-dasharray:2 2;fill:none"/>
+ <!-- 6 responder -->
+ <rect x="30" y="232" width="190" height="104" rx="12" class="b" style="stroke:#32ade6"/><text x="125" y="254" text-anchor="middle" class="t">6 · Capture &amp; validate</text>
+ <text x="125" y="272" text-anchor="middle" class="s">exit code → success / partial / fail</text><text x="125" y="286" text-anchor="middle" class="s">stdout must be valid JSON</text>
+ <text x="125" y="304" text-anchor="middle" class="t" style="font-size:11.5px">7 · Summary + evidence</text><text x="125" y="320" text-anchor="middle" class="s">quotes matched to crawled text</text>
+ <path d="M125 232 V60 H228" class="l"/><text x="138" y="124" class="lab">8 · Result streamed</text><text x="138" y="137" class="lab">summary · ✓/⚠ claims · JSON</text>
+ <path d="M215 330 H170" style="display:none"/>
+</svg></div>
+<div class="caption">Figure 1. Request flow, from the chat message to the CLI execution and the verified response. Red dashed path: requests that are refused before anything executes.</div>
 <h3>Architectural principles</h3>
 <ul>
   <li><b>Separation of reasoning and execution.</b> The LLM proposes structured data; deterministic code decides what runs. This removes the class of failures where a model "hallucinates" a command or a result.</li>
