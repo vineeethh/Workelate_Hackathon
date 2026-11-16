@@ -4,4 +4,6 @@
 .env
 .pytest_cache/
 .venv/
+VIDEO_SCRIPT.md
 __pycache__/
+out/
