@@ -308,7 +308,7 @@ function addAssistant(){
       <span class="stage" data-s="process">Validate &amp; respond</span>
     </div>
     <div class="slot-intent"></div><div class="slot-plan"></div><div class="slot-exec"></div>
-    <div class="slot-answer answer"></div><div class="slot-json"></div></div>`;
+    <div class="slot-answer answer"></div><div class="slot-verify"></div><div class="slot-json"></div></div>`;
   chat.appendChild(d); scroll();
   return d;
 }
@@ -401,6 +401,17 @@ async function send(text){
         const parts = md(ev.markdown).split("<br><br>");
         const st = ev.status;
         $(".slot-answer", el).innerHTML = `<div class="banner ${esc(st)}"><span class="ico">${BANNER_ICON[st] || "✕"}</span><div>${parts[0]}</div></div>${parts.slice(1).join("<br><br>")}`;
+        const v = ev.data?.verification;
+        if (v && v.claims_total){
+          const all = v.claims_verified === v.claims_total;
+          const rows = v.claims.map(c => `<div style="padding:8px 0;border-bottom:.5px solid var(--separator)">
+              <div><span class="chip ${c.verified?"ok":"warn"} type-caption-1">${c.verified?"✓ verified":"⚠ unverified"}</span> ${esc(c.claim)}</div>
+              ${c.quote?`<div class="text-label-2 type-footnote" style="margin-top:4px">“${esc(c.quote)}”</div>`:""}
+              <div class="text-label-3 type-caption-1" style="margin-top:2px">${c.verified?esc(c.source_url):esc(c.reason||"")}</div></div>`).join("");
+          $(".slot-verify", el).innerHTML = group("list", all?"t-green":"t-orange",
+            `Evidence check · <b>${v.claims_verified}/${v.claims_total}</b> claims verified`,
+            rows + `<div class="text-label-3 type-caption-1" style="margin-top:8px">${esc(v.method)}</div>`, !all);
+        }
         if (ev.data){
           $(".slot-json", el).innerHTML = group("braces", "t-green", "Structured JSON result",
             `<pre class="json">${jsonHighlight(ev.data)}</pre>`, ev.json_requested !== false,

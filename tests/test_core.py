@@ -89,3 +89,17 @@ def test_orchestrator_timeout_kills_process(monkeypatch):
     res = asyncio.run(go())
     assert res.timed_out and res.exit_code != 0 and res.stdout_json is None
     assert res.duration_ms < 10_000
+
+
+# ---------------- evidence check
+def test_evidence_check_verifies_real_quotes_and_flags_fabricated_ones():
+    from backend.verify import verify_claims
+    crawl = {"pages": [{"url": "https://x.test/", "title": "X", "meta_description": "", "headings": {},
+                        "text_excerpt": "This domain is for use in documentation examples without needing permission."}]}
+    rep = verify_claims([
+        {"claim": "real", "quote": "for use in  documentation examples", "source_url": "https://x.test/"},
+        {"claim": "fake", "quote": "we offer enterprise pricing from $99 per month", "source_url": "https://x.test/"},
+        {"claim": "none", "quote": "", "source_url": None},
+    ], crawl)
+    assert [c["verified"] for c in rep["claims"]] == [True, False, False]
+    assert rep["claims_verified"] == 1 and rep["claims_total"] == 3 and not rep["all_verified"]

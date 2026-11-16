@@ -76,6 +76,15 @@ result = json.loads(stdout) + schema check + exit-code mapping
 answer = build_response(spec, result)           # summary + validated JSON, honest status
 ```
 
+## Evidence check: summaries you can audit
+
+An LLM summary can sound right and still be invented. CrawlPilot makes the model back every key point with a **verbatim quote** and the URL it came from. The backend then checks, with a plain string match and no LLM, that the quote really appears in the text the CLI crawled (`backend/verify.py`).
+
+* The chat shows `Key points - evidence check: 6/6 verified`, with ✓ or ⚠ on each point, and an **Evidence check** card listing each quote and its source page.
+* A key point with a missing or invented quote is shown as **unverified**. It is never silently presented as fact.
+* The full report is in the JSON under `verification` (`claims_total`, `claims_verified`, and per-claim `quote`, `source_url`, `verified`).
+* Limitation: the check proves the quote exists on the site. It does not prove the key point is a fair reading of that quote, so the quote is shown next to the claim for a human to judge.
+
 ## Security and reliability
 
 | Risk | Mitigation |
@@ -137,7 +146,7 @@ You can also use the CLI directly: `python sitecrawl/cli.py https://example.com 
 
 ### Tests
 ```bash
-.venv/bin/python -m pytest -q     # 20 tests: SSRF/validation, intent, CLI contract, timeout kill, env isolation
+.venv/bin/python -m pytest -q     # 21 tests: SSRF/validation, intent, CLI contract, timeout kill, env isolation, evidence check
 ```
 
 ## Project layout
@@ -148,6 +157,7 @@ backend/
   llm.py           provider layer: OpenRouter / Anthropic, schema validation, fallback
   orchestrator.py  approved-tool registry, subprocess runner, timeout/cancel, capture
   responder.py     output validation, grounded summary, final JSON
+  verify.py        evidence check: quotes matched against crawled text
   security.py      URL/SSRF validation, secret redaction
   config.py        env config
 sitecrawl/cli.py   the approved CLI tool
