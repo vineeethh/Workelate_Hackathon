@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CrawlPilot – System Architecture</title>
+<style>
+@page { size: A4; margin: 18mm 17mm 18mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1d1d1f; font-size: 10.2pt; line-height: 1.5; margin: 0; }
+h1 { font-size: 26pt; margin: 0 0 6px; letter-spacing: -0.5px; }
+h2 { font-size: 14.5pt; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1.5px solid #0071e3; color: #0b2a4a; page-break-after: avoid; }
+h3 { font-size: 11.2pt; margin: 14px 0 4px; color: #1d1d1f; page-break-after: avoid; }
+p { margin: 0 0 8px; text-align: justify; }
+ul, ol { margin: 0 0 8px; padding-left: 20px; }
+li { margin: 2px 0; }
+code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.8pt; background: #f2f4f7; padding: 0 4px; border-radius: 3px; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9.2pt; page-break-inside: avoid; }
+th { background: #0b2a4a; color: #fff; text-align: left; padding: 6px 8px; font-weight: 600; }
+td { border-bottom: 1px solid #e3e6ea; padding: 5px 8px; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fb; }
+.cover { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
+.cover .band { background: linear-gradient(135deg, #0071e3, #5e5ce6); color: #fff; padding: 34px 32px; border-radius: 14px; }
+.cover .band h1 { color: #fff; font-size: 34pt; }
+.cover .band .sub { font-size: 14pt; opacity: .95; margin-top: 4px; }
+.cover .meta td { border: 0; padding: 3px 0; background: none !important; font-size: 10.5pt; }
+.cover .meta td:first-child { color: #6e6e73; width: 46mm; }
+.callout { background: #eef5ff; border-left: 4px solid #0071e3; padding: 9px 12px; margin: 8px 0 12px; border-radius: 0 6px 6px 0; }
+.toc li { margin: 3px 0; }
+.diagram { border: 1px solid #d2d6dc; border-radius: 10px; padding: 12px; margin: 8px 0 12px; page-break-inside: avoid; }
+.layer { border-radius: 8px; padding: 8px 12px; margin: 0; }
+.layer b { display: block; font-size: 10.3pt; }
+.layer span { font-size: 9pt; color: #3a3a3c; }
+.l1 { background: #e8f1fe; border: 1px solid #b6d3fb; }
+.l2 { background: #f1effe; border: 1px solid #cbc6fb; }
+.l3 { background: #e9f8ee; border: 1px solid #b5e3c4; }
+.l4 { background: #fff4e5; border: 1px solid #f6d3a1; }
+.arrow { text-align: center; font-size: 9pt; color: #6e6e73; margin: 3px 0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.mod { background: #fff; border: 1px solid #cbc6fb; border-radius: 6px; padding: 5px 8px; font-size: 8.8pt; }
+.mod b { font-size: 9.2pt; display: inline; }
+.pb { page-break-before: always; }
+.small { font-size: 8.8pt; color: #6e6e73; }
+footer { font-size: 8pt; color: #8e8e93; text-align: center; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+  <div>
+    <div class="band">
+      <div style="font-size:10pt;letter-spacing:2px;opacity:.85">BUILDSPRINT · ROUND 2 · IMPLEMENTATION CHALLENGE</div>
+      <h1 style="margin-top:14px">CrawlPilot</h1>
+      <div class="sub">System Architecture &amp; Technical Design Document</div>
+      <div style="margin-top:18px;font-size:11pt;opacity:.95">CLI-Driven AI Chat Execution for Complex Tasks</div>
+    </div>
+    <div style="margin-top:28px">
+      <table class="meta">
+        <tr><td>Document type</td><td>Architecture and design specification</td></tr>
+        <tr><td>Challenge</td><td>CLI-Driven AI Chat Execution for Complex Tasks (WorkElate BuildSprint)</td></tr>
+        <tr><td>Mandatory use case</td><td>Website crawling, summarisation and structured JSON extraction</td></tr>
+        <tr><td>Repository</td><td>https://github.com/vineeethh/Workelite_Hackathon</td></tr>
+        <tr><td>Version / date</td><td>1.0 · 16 November 2026</td></tr>
+      </table>
+    </div>
+    <div class="callout" style="margin-top:22px">
+      <b>In one sentence:</b> CrawlPilot is a conversational application that converts a natural-language
+      request into a validated, allow-listed CLI execution on the backend, monitors and captures that
+      process (stdout, stderr, exit code), verifies the result, and returns an evidence-checked summary
+      together with schema-valid JSON in the chat interface.
+    </div>
+  </div>
+  <div>
+    <h3>Contents</h3>
+    <ol class="toc" style="columns:2;font-size:9.6pt">
+      <li>Executive summary</li>
+      <li>Problem statement and objectives</li>
+      <li>Architecture overview</li>
+      <li>Component design</li>
+      <li>End-to-end request lifecycle</li>
+      <li>CLI execution design</li>
+      <li>Natural-language understanding</li>
+      <li>Output processing and evidence check</li>
+      <li>Security architecture</li>
+      <li>Reliability and error handling</li>
+      <li>Data contracts</li>
+      <li>Technology stack and rationale</li>
+      <li>Testing and verification</li>
+      <li>Requirement traceability</li>
+      <li>Deployment and operation</li>
+      <li>Limitations and roadmap</li>
+      <li>AI usage disclosure</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================== 1 ============================== -->
+<h2>1. Executive Summary</h2>
+<p>Most AI chat applications follow a single pattern: the user's prompt is forwarded to a language model and
+the generated text is displayed. That pattern is unsuitable for practical requests that require real work,
+such as visiting websites, collecting data or running tools, because the model can only describe what it
+would do. It cannot do it, and it cannot prove that it did.</p>
+<p>CrawlPilot closes this gap. The language model is used only for what it is good at, understanding intent
+and writing summaries, while all execution is performed by a dedicated command-line tool that the backend
+starts as a separate operating-system process. Every execution is observable (live logs are streamed to
+the chat), bounded (timeouts, page and depth limits, resource limits) and verifiable (exit codes are mapped
+to explicit statuses and the output must pass JSON validation). A deterministic evidence check confirms that
+every key point in the AI-written summary is supported by a verbatim quote from the crawled pages.</p>
+<p>The system demonstrates the mandatory use case end to end: a user asks the chat to crawl a website,
+extract the important information, summarise it and return JSON; the backend runs the <code>sitecrawl</code>
+CLI against the live site and returns a readable summary plus schema-valid JSON, with an honest
+success, partial or failure status.</p>
+
+<h3>Key differentiators</h3>
+<ul>
+  <li><b>Real CLI execution, not simulated output.</b> The backend starts a separate process, captures stdout,
+    stderr and the exit code, and treats the result as evidence.</li>
+  <li><b>Evidence-checked summaries.</b> Each key point carries a verbatim quote and source URL, which the backend matches
+    against the crawled text without involving the LLM. Unsupported claims are flagged, never hidden.</li>
+  <li><b>Live execution transparency.</b> The user watches the exact command, the streamed log lines, the process ID, the exit code,
+    the duration and the output validation result as they happen.</li>
+  <li><b>Defence in depth.</b> No shell, an allow-list of tools, SSRF protection at two layers, a secret-free child environment,
+    prompt-injection fencing and output redaction.</li>
+  <li><b>Graceful degradation.</b> The full pipeline still works without an API key, using a rule-based intent parser and an
+    extractive summariser, so judges can reproduce it with no credentials.</li>
+</ul>
+
+<!-- ============================== 2 ============================== -->
+<h2>2. Problem Statement and Objectives</h2>
+<p>The challenge requires a conversational AI system that translates natural-language instructions into
+controlled, multi-step tasks and executes them by invoking a CLI tool or agent from the backend. The system must
+capture the CLI execution status and output, process or validate the result, and present the final
+response to the user. Merely calling an LLM API and returning generated text does not satisfy the core
+objective.</p>
+<h3>Design objectives</h3>
+<table>
+  <tr><th style="width:28%">Objective</th><th>How the architecture meets it</th></tr>
+  <tr><td>Natural-language task input</td><td>Chat interface accepts free text; an intent layer converts it into a typed task specification.</td></tr>
+  <tr><td>Controlled execution</td><td>Only allow-listed tools can run; arguments are built by code from validated fields, never from raw text.</td></tr>
+  <tr><td>Observable execution</td><td>stderr is streamed line by line to the chat; process ID, duration and exit code are displayed.</td></tr>
+  <tr><td>Verifiable results</td><td>stdout must be one valid JSON document of the expected type; exit codes map to explicit statuses; summary claims are evidence-checked.</td></tr>
+  <tr><td>Safety</td><td>URL and SSRF validation, resource limits, timeouts, robots.txt compliance, secret isolation, prompt-injection fencing.</td></tr>
+  <tr><td>Honesty</td><td>Success is reported only when the process exits cleanly and the output validates; otherwise a failure, partial, timeout or cancellation status is shown with its reason.</td></tr>
+  <tr><td>Reproducibility</td><td>Pure-Python stack, one-command setup, optional LLM, automated tests.</td></tr>
+</table>
+
+<!-- ============================== 3 ============================== -->
+<h2 class="pb">3. Architecture Overview</h2>
+<p>CrawlPilot uses a four-layer architecture. Each layer has a single responsibility and communicates
+with the next through a narrow, well-defined interface. The presentation layer never executes anything;
+the orchestration layer never interprets website content; the execution layer never sees secrets or
+user prompts; and the intelligence layer never chooses or constructs commands.</p>
+
+<div class="diagram">
+  <div class="layer l1"><b>Layer 1 · Presentation: Chat interface (frontend/index.html)</b>
+    <span>Message composer · live CLI terminal · stage indicator · execution status chips · evidence-check card · JSON viewer (copy and download) · cancel control. Plain HTML, CSS and JavaScript styled with the applecn design system.</span></div>
+  <div class="arrow">▼ HTTP POST /api/chat &nbsp;·&nbsp; ▲ Server-Sent Events stream (intent, plan, logs, exit status, result) &nbsp;·&nbsp; POST /api/cancel/{job}</div>
+  <div class="layer l2"><b>Layer 2 · Orchestration: FastAPI backend (backend/app.py)</b>
+    <span>Request pipeline, rate limiting, job tracking, streaming. Coordinates the following modules:</span>
+    <div class="grid">
+      <div class="mod"><b>intent.py</b>: natural language → typed TaskSpec (LLM or rules)</div>
+      <div class="mod"><b>security.py</b>: URL validation, SSRF block, secret redaction</div>
+      <div class="mod"><b>orchestrator.py</b>: tool allow-list, argv builder, process runner</div>
+      <div class="mod"><b>responder.py</b>: output validation, summary, final JSON</div>
+      <div class="mod"><b>verify.py</b>: deterministic evidence check of claims</div>
+      <div class="mod"><b>llm.py</b>: provider layer (OpenRouter / Anthropic) with schema validation</div>
+    </div></div>
+  <div class="arrow">▼ execve(argv) as a separate process: no shell, clean environment, own process group, rlimits &nbsp;·&nbsp; ▲ stdout (JSON) · stderr (logs) · exit code</div>
+  <div class="layer l3"><b>Layer 3 · Execution: sitecrawl CLI (sitecrawl/cli.py)</b>
+    <span>Bounded breadth-first crawler: robots.txt compliance, same-domain traversal, page, depth, byte and time limits, SSRF re-validation after redirects, structured extraction, one JSON document on stdout, progress events on stderr, documented exit codes.</span></div>
+  <div class="arrow">▼ HTTPS GET (polite user agent, crawl delay)</div>
+  <div class="layer l4"><b>Layer 4 · External: public websites, plus the LLM API (OpenRouter → Claude Haiku 5.5)</b>
+    <span>Website content is treated as untrusted data. The LLM is called only by the orchestration layer, only for intent parsing and summarisation, and only with schema-constrained output.</span></div>
+</div>
+
+<h3>Architectural principles</h3>
+<ul>
+  <li><b>Separation of reasoning and execution.</b> The LLM proposes structured data; deterministic code decides what runs. This removes the class of failures where a model "hallucinates" a command or a result.</li>
+  <li><b>Narrow interfaces.</b> The CLI contract is fixed: input is a validated argument vector, output is one JSON document, progress goes to stderr, and outcome is the exit code. This makes the tool independently testable and replaceable.</li>
+  <li><b>Fail closed.</b> Any validation failure stops the pipeline before execution. Any execution failure produces an explicit non-success status.</li>
+  <li><b>Evidence over assertion.</b> The system reports what the process produced, not what the model claims.</li>
+</ul>
+
+<!-- ============================== 4 ============================== -->
+<h2>4. Component Design</h2>
+<h3>4.1 Chat interface (frontend)</h3>
+<p>A single-page interface built with plain HTML, CSS and JavaScript, with no build step. It consumes the backend's Server-Sent
+Events stream and renders each stage of the pipeline as it happens: the interpreted intent, the execution plan, a
+terminal panel that shows the exact command and each log line emitted by the CLI, status chips (process ID,
+timeout, exit code and meaning, duration, output size, JSON validation), the answer with a status banner, an
+evidence-check card, and a syntax-highlighted JSON viewer with copy and download. All website-derived text is
+HTML-escaped before rendering to prevent cross-site scripting. Visual design uses the open-source applecn
+design system (Apple Human Interface Guidelines tokens), including a live Web, macOS and iOS idiom switch and light and dark modes.</p>
+
+<h3>4.2 API and pipeline (backend/app.py)</h3>
+<p>FastAPI exposes <code>POST /api/chat</code> (streams the pipeline), <code>POST /api/cancel/{job_id}</code> (terminates a running process),
+<code>GET /api/health</code> (reports the active engine without exposing secrets) and the static UI. The pipeline runs five stages in
+order: intent, validation, plan, execution, and response. It applies a per-client rate limit of ten requests per minute and
+cancels the child process automatically if the browser disconnects.</p>
+
+<h3>4.3 Intent layer (backend/intent.py, backend/llm.py)</h3>
+<p>Converts free text into a typed <code>TaskSpec</code>: task type, URL, summary and JSON flags, page and depth limits, an optional extraction focus and
+a one-line rationale. The primary engine is Claude Haiku 5.5 through OpenRouter, constrained to a JSON schema and validated with
+Pydantic. A deterministic rule-based parser is the fallback when no key is configured or the model output is invalid.</p>
+
+<h3>4.4 Security module (backend/security.py)</h3>
+<p>Validates and normalises URLs (scheme, length, characters, credentials, port allow-list, hostname rules), resolves DNS and rejects
+private, loopback, link-local, reserved and multicast addresses. It also provides <code>redact()</code>, which removes API-key patterns and
+the literal values of sensitive environment variables from any text before it is logged or returned.</p>
+
+<h3>4.5 Orchestrator (backend/orchestrator.py)</h3>
+<p>Holds the allow-list registry of approved tools. Each entry defines an argument-vector builder and an exit-code map. The orchestrator
+starts the process, pumps stdout and stderr concurrently, emits live events, enforces the wall-clock timeout, supports cancellation
+and returns a structured <code>ExecutionResult</code>. Section 6 describes it in detail.</p>
+
+<h3>4.6 Responder and evidence check (backend/responder.py, backend/verify.py)</h3>
+<p>Validates the captured output, produces the summary (LLM or extractive), runs the evidence check, assembles the final JSON
+document, and formats the chat answer with an explicit status. Section 8 describes it in detail.</p>
+
+<h3>4.7 Execution tool (sitecrawl/cli.py)</h3>
+<p>A purpose-built, standalone crawler CLI. It can be run directly from a terminal, which demonstrates that the chat is genuinely invoking
+an independent program. It respects robots.txt (including crawl-delay), traverses same-domain links breadth-first, skips
+binary assets, caps page size at 2 MB, and extracts the title, meta description, language, headings, readable text, links, emails, phone numbers,
+social profiles, navigation and top keywords.</p>
+
+<!-- ============================== 5 ============================== -->
+<h2 class="pb">5. End-to-End Request Lifecycle</h2>
+<p>The following sequence describes the mandatory demonstration request:
+<i>"Crawl https://example.com, extract the important information, give me a summary, and return the extracted data in JSON format."</i></p>
+<table>
+  <tr><th style="width:6%">#</th><th style="width:22%">Stage</th><th>Processing</th></tr>
+  <tr><td>1</td><td>Submit</td><td>The browser sends the message to <code>POST /api/chat</code>. The server assigns a job ID, applies the rate limit and opens an event stream.</td></tr>
+  <tr><td>2</td><td>Interpret</td><td>The intent layer asks the LLM for a schema-constrained <code>TaskSpec</code> and validates the result: task <code>crawl_website</code>, URL <code>https://example.com</code>, summary and JSON requested, 5 pages, depth 1. The URL is accepted only because it appears verbatim in the user's message.</td></tr>
+  <tr><td>3</td><td>Validate</td><td>The security module checks the scheme and port, resolves DNS and confirms that every resolved address is public. Invalid input stops here with an "Invalid input" response; nothing executes.</td></tr>
+  <tr><td>4</td><td>Plan</td><td>The backend streams a human-readable execution plan: validate, run the approved CLI with limits, capture outputs, validate and summarise.</td></tr>
+  <tr><td>5</td><td>Execute</td><td>The orchestrator builds the argument vector <code>[python, -I, sitecrawl/cli.py, URL, --max-pages, 5, --max-depth, 1, …]</code> and starts it with <code>create_subprocess_exec</code> in a new process group with a clean environment and resource limits.</td></tr>
+  <tr><td>6</td><td>Monitor</td><td>stderr lines (<code>start</code>, <code>robots</code>, <code>fetch</code>, <code>ok</code>, <code>done</code>) are redacted and streamed to the chat in real time; heartbeats keep the connection alive; the timeout and cancel signals are observed.</td></tr>
+  <tr><td>7</td><td>Capture</td><td>On exit the backend records the exit code, duration, stdout size and the last 40 stderr lines, and parses stdout as JSON, checking that it is a <code>sitecrawl</code> result.</td></tr>
+  <tr><td>8</td><td>Process</td><td>The responder generates the summary and key points with evidence quotes, runs the deterministic evidence check, and assembles the final JSON (status, source, site, summary, insights, verification, contact, keywords, pages, errors, execution metadata).</td></tr>
+  <tr><td>9</td><td>Respond</td><td>The chat shows a status banner (for example "Success – crawled 1 page in 0.7 s, exit code 0"), the summary with ✓ or ⚠ per key point, the evidence card and the JSON viewer.</td></tr>
+</table>
+<p>Typical latency for the mandatory demo is under 10 seconds end to end, of which the crawl itself takes under one second
+and the remainder is the two LLM calls. A six-page crawl of a real site completes in roughly 5 to 15 seconds.</p>
+
+<!-- ============================== 6 ============================== -->
+<h2>6. CLI Execution Design (Core of the Challenge)</h2>
+<h3>6.1 Tool selection and rationale</h3>
+<p>Existing crawlers were evaluated first, including Crawl4AI's <code>crwl</code>, Firecrawl and ScrapeGraphAI. They are capable, but each
+requires a headless browser installation or a hosted API key, which makes judge reproduction slow and fragile. A purpose-built
+CLI, <code>sitecrawl</code>, was therefore implemented with a contract designed for programmatic control: a deterministic stdout format,
+line-oriented progress on stderr, documented exit codes, and built-in safety limits. The orchestrator's registry design allows
+additional tools, such as <code>crwl</code> for JavaScript-heavy sites, to be added as one entry each.</p>
+
+<h3>6.2 Input handling</h3>
+<p>The CLI never receives free text. The orchestrator builds an argument vector from validated, typed fields only: a normalised URL that has passed
+SSRF checks, and integer limits clamped to hard maxima (25 pages, depth 3). The vector is passed directly to the operating system's process
+creation call; there is no shell, so quoting, globbing, pipes and command chaining are impossible by construction. The interpreter runs
+in isolated mode (<code>-I</code>), which ignores environment-based module paths.</p>
+
+<h3>6.3 Process isolation and limits</h3>
+<ul>
+  <li><b>Own process group</b> (<code>setsid</code>), so the entire process tree can be terminated with one signal.</li>
+  <li><b>Clean environment:</b> only <code>PATH</code>, locale and certificate variables are inherited. API keys and other secrets are never passed to the child.</li>
+  <li><b>Resource limits:</b> 60 s CPU time and a 50 MB maximum file size (POSIX <code>rlimit</code>); a private temporary working directory per job.</li>
+  <li><b>Output limits:</b> stdout is capped at 8 MB; each page at 2 MB; text kept per page is capped.</li>
+</ul>
+
+<h3>6.4 Output capture</h3>
+<p>stdout and stderr are read concurrently by two asynchronous tasks to avoid pipe-buffer deadlocks. Each stderr line is redacted and forwarded to
+the chat immediately. stdout is accumulated and parsed only after the process exits. The resulting <code>ExecutionResult</code> records the job ID,
+tool, displayed command, exit code, exit meaning, duration, parsed JSON, stderr tail, timeout and cancellation flags, parse error and stdout size.</p>
+
+<h3>6.5 Exit-code contract</h3>
+<table>
+  <tr><th style="width:12%">Code</th><th style="width:26%">Meaning</th><th>System behaviour</th></tr>
+  <tr><td>0</td><td>Success</td><td>All requested pages crawled; result presented as a success.</td></tr>
+  <tr><td>3</td><td>Partial result</td><td>Some pages failed; result presented with a "Partial result" banner and the list of failures.</td></tr>
+  <tr><td>4</td><td>Unreachable</td><td>Start URL could not be fetched; failure reported with the reason.</td></tr>
+  <tr><td>5</td><td>Blocked by robots.txt</td><td>Crawl not performed; the user is told the site disallows it.</td></tr>
+  <tr><td>2</td><td>Invalid input</td><td>Rejected target or arguments; valid JSON error still emitted on stdout.</td></tr>
+  <tr><td>1</td><td>Unexpected error</td><td>Last-resort guard; stdout still contains valid JSON describing the failure.</td></tr>
+  <tr><td>−9</td><td>Killed</td><td>Terminated by the orchestrator due to timeout or user cancellation; never reported as success.</td></tr>
+</table>
+
+<h3>6.6 Long-running tasks, timeouts and cancellation</h3>
+<p>A configurable wall-clock timeout (90 seconds by default) is enforced by the orchestrator. On expiry, the whole process group receives
+<code>SIGKILL</code> and the result is marked as timed out. Users can cancel a running job from the chat, which calls <code>/api/cancel/{job_id}</code>.
+If the browser disconnects, the job is cancelled automatically. Heartbeat events are emitted every second during quiet periods so the client
+can display elapsed time. The CLI also enforces its own per-request timeout (10 seconds) and a polite inter-request delay.</p>
+
+<!-- ============================== 7 ============================== -->
+<h2 class="pb">7. Natural-Language Understanding</h2>
+<p>The intent layer turns ambiguous human language into a strictly typed task. The LLM receives a short system instruction stating that it
+may only classify the request against one available tool, must copy the URL exactly as written, must never invent a URL, and must
+classify anything other than crawling, summarising or extracting (for example running shell commands or accessing internal systems) as
+<code>unsupported</code>. The response must conform to the <code>TaskSpec</code> JSON schema and is validated with Pydantic before use.</p>
+<h3>Post-validation safeguards</h3>
+<ul>
+  <li><b>URL provenance check:</b> a URL returned by the model is kept only if it appears in the user's original message; otherwise the rule-based extractor is used.</li>
+  <li><b>Re-clamping:</b> page and depth limits are clamped again in code after the model responds, regardless of what the model returned.</li>
+  <li><b>No command authority:</b> the model's output is data. The mapping from task type to tool, and from fields to arguments, is fixed in code.</li>
+  <li><b>Fallback:</b> if no key is configured, the API call fails, or the output does not validate, a deterministic parser extracts the URL, limits, output preferences and focus using regular expressions.</li>
+</ul>
+<p>The intent result, including the engine used (<code>llm</code> or <code>rules</code>) and the model's one-line rationale, is shown to the user in the chat for transparency.</p>
+
+<!-- ============================== 8 ============================== -->
+<h2>8. Output Processing and Evidence Check</h2>
+<h3>8.1 Validation</h3>
+<p>The responder first checks the execution outcome. If the job was cancelled, timed out, produced no stdout, produced invalid JSON, or crawled zero
+pages, the pipeline returns a failure response that states the precise reason, and no summary is generated. Only validated crawl data continues.</p>
+<h3>8.2 Summarisation with untrusted-content fencing</h3>
+<p>Crawled text is wrapped in <code>&lt;untrusted_website_content&gt;</code> delimiters. The model is instructed to ignore any instructions inside it, to ground every
+statement in the content, and never to invent facts, numbers, emails or names. The summarisation call has no tools attached, so even a successful
+prompt injection cannot trigger an action. The output conforms to an <code>Insights</code> schema: site name, summary, purpose, audience, key points,
+offerings, focus answer, caveats and evidence.</p>
+<h3>8.3 Evidence check</h3>
+<p>For every key point the model must supply a short verbatim quote and the URL of the page it came from. <code>verify.py</code> then normalises
+Unicode, quotation marks, dashes and whitespace and performs a substring match of each quote against the text, title, description and headings of
+the crawled pages, checking the cited page first. No LLM participates in this step, so a fabricated quote cannot verify itself. Each claim is
+labelled <i>verified</i> or <i>unverified</i> (with a reason), and the chat shows the score, for example "6/6 verified against the crawled text".</p>
+<div class="callout"><b>Scope of the check:</b> it proves that the quoted text exists on the crawled site. It does not prove that the key point is a fair
+interpretation of the quote, so each quote is displayed beside its claim for human review.</div>
+<h3>8.4 Final JSON</h3>
+<p>The final document is serialised and parsed again (round-tripped) to guarantee syntactic validity, then passed through secret redaction before it reaches the
+client. It is always attached to the response for auditability and expanded by default when the user requested JSON.</p>
+
+<!-- ============================== 9 ============================== -->
+<h2 class="pb">9. Security Architecture</h2>
+<p>The security model assumes three untrusted inputs: the user's message, the model's output, and website content. Controls are layered so that no
+single failure leads to unsafe execution.</p>
+<table>
+  <tr><th style="width:24%">Threat</th><th>Mitigation</th></tr>
+  <tr><td>Shell or command injection</td><td>Process created from an argument vector with <code>create_subprocess_exec</code>; no shell; arguments built only from validated, typed fields; interpreter in isolated mode.</td></tr>
+  <tr><td>Arbitrary tool execution</td><td>Allow-list registry; task types map to tools in code; unsupported requests are refused with an explanation.</td></tr>
+  <tr><td>Server-side request forgery</td><td>http and https only; no embedded credentials; port allow-list (80, 443, 8080, 8443); DNS resolution with rejection of private, loopback, link-local, reserved, multicast and unspecified addresses; internal hostname suffixes blocked; the crawler re-validates the final URL after every redirect.</td></tr>
+  <tr><td>Resource exhaustion</td><td>Wall-clock timeout with process-group kill; CPU and file-size rlimits; page (25), depth (3), page-size (2 MB) and stdout (8 MB) caps; rate limit of 10 requests per minute per client; robots.txt crawl-delay honoured.</td></tr>
+  <tr><td>Secret leakage</td><td>Child process receives no secrets; stderr, logs and JSON pass through redaction of key patterns and sensitive environment values; health endpoint exposes no keys; <code>.env</code> is git-ignored.</td></tr>
+  <tr><td>Prompt injection via websites</td><td>Content fenced as untrusted; explicit instruction to ignore embedded instructions; summarisation call has no tools; model output is schema-validated data, never executed.</td></tr>
+  <tr><td>Cross-site scripting</td><td>All scraped and model text is HTML-escaped before rendering in the browser.</td></tr>
+  <tr><td>Fabricated results</td><td>Success requires a clean exit code and valid JSON of the expected type; evidence check flags unsupported claims; failures, timeouts and cancellations are reported explicitly.</td></tr>
+  <tr><td>Responsible crawling</td><td>robots.txt respected by default (the bypass flag is not exposed to the backend); identifiable user agent; inter-request delay; same-domain scope only.</td></tr>
+</table>
+
+<!-- ============================== 10 ============================== -->
+<h2>10. Reliability and Error Handling</h2>
+<table>
+  <tr><th style="width:28%">Failure scenario</th><th style="width:22%">Detection</th><th>User-visible outcome</th></tr>
+  <tr><td>Missing or malformed URL</td><td>Security validation</td><td>"Invalid input" banner with guidance; no execution.</td></tr>
+  <tr><td>Domain does not resolve</td><td>DNS lookup</td><td>"Invalid input – DNS lookup failed. Is it spelled correctly?"</td></tr>
+  <tr><td>Private or internal target</td><td>IP classification</td><td>"Blocked for safety"; no execution.</td></tr>
+  <tr><td>Unsupported or unsafe request</td><td>Intent classification</td><td>Polite refusal explaining the approved capability.</td></tr>
+  <tr><td>Site unreachable or HTTP error</td><td>Exit code 4</td><td>"Task failed" with the underlying error.</td></tr>
+  <tr><td>Some pages fail</td><td>Exit code 3</td><td>"Partial result" banner; failures listed in JSON.</td></tr>
+  <tr><td>robots.txt disallows</td><td>Exit code 5</td><td>Explanation that the crawl was not performed.</td></tr>
+  <tr><td>Process exceeds time limit</td><td>Orchestrator timer</td><td>Process group killed; "timed out" status; no success claim.</td></tr>
+  <tr><td>User cancels or disconnects</td><td>Cancel endpoint / disconnect check</td><td>Process killed; "cancelled by user".</td></tr>
+  <tr><td>Invalid or oversized stdout</td><td>JSON parse / size cap</td><td>"Task failed" with the parse reason.</td></tr>
+  <tr><td>LLM unavailable or invalid output</td><td>Exception / schema validation</td><td>Automatic fallback to rules and extractive summary; labelled in <code>generated_by</code>.</td></tr>
+  <tr><td>Unexpected server error</td><td>Top-level handler</td><td>"Internal error – nothing was claimed as done."</td></tr>
+</table>
+
+<!-- ============================== 11 ============================== -->
+<h2 class="pb">11. Data Contracts</h2>
+<h3>11.1 TaskSpec (intent output)</h3>
+<p><code>task_type</code> (crawl_website | help | unsupported), <code>url</code>, <code>want_summary</code>, <code>want_json</code>, <code>max_pages</code> (1–25),
+<code>max_depth</code> (0–3), <code>focus</code> (optional specific topic), <code>reasoning</code>.</p>
+<h3>11.2 sitecrawl stdout (CLI output)</h3>
+<p><code>tool</code>, <code>version</code>, <code>start_url</code>, <code>started_at</code>, <code>limits</code>, <code>robots</code> {checked, allowed},
+<code>status</code> (success | partial | failed), <code>pages[]</code> {url, depth, status_code, title, meta_description, language, headings, word_count,
+text_excerpt, links, images_count, emails, phones, social_links, nav_links}, <code>site</code> {title, description, language, emails, phones,
+social_links, nav_links, top_keywords}, <code>stats</code> {pages_crawled, pages_failed, pages_discovered, bytes_downloaded, duration_ms},
+<code>errors[]</code>.</p>
+<h3>11.3 Final response JSON (returned to the user)</h3>
+<table>
+  <tr><th style="width:24%">Field</th><th>Content</th></tr>
+  <tr><td><code>status</code></td><td>success, partial or failed, derived from the exit code and validation.</td></tr>
+  <tr><td><code>request</code>, <code>source</code></td><td>Interpreted request; start URL, crawl time, pages crawled and failed, robots.txt compliance.</td></tr>
+  <tr><td><code>site</code>, <code>summary</code></td><td>Site name, title, description, language; grounded natural-language summary.</td></tr>
+  <tr><td><code>insights</code></td><td>Purpose, target audience, key points, offerings, answer to the user's specific focus.</td></tr>
+  <tr><td><code>verification</code></td><td>Method, claims total and verified, and per-claim quote, source URL and verdict.</td></tr>
+  <tr><td><code>contact</code>, <code>top_keywords</code>, <code>navigation</code>, <code>pages</code></td><td>Extracted structured data across crawled pages.</td></tr>
+  <tr><td><code>errors</code>, <code>caveats</code></td><td>Per-page failures and limitations of the result.</td></tr>
+  <tr><td><code>execution</code></td><td>Tool, exact command, exit code and meaning, duration, stdout size, timeout and cancellation flags.</td></tr>
+  <tr><td><code>generated_by</code></td><td>Which engines produced the intent and summary (llm, rules, extractive).</td></tr>
+</table>
+
+<!-- ============================== 12 ============================== -->
+<h2>12. Technology Stack and Rationale</h2>
+<table>
+  <tr><th style="width:20%">Layer</th><th style="width:32%">Technology</th><th>Rationale</th></tr>
+  <tr><td>Backend</td><td>Python 3.12, FastAPI, Uvicorn, Pydantic</td><td>Native async subprocess support, first-class streaming responses, strict schema validation.</td></tr>
+  <tr><td>Execution tool</td><td>Custom Python CLI (requests, BeautifulSoup, lxml)</td><td>Lightweight, no browser dependency, contract designed for programmatic control.</td></tr>
+  <tr><td>Frontend</td><td>HTML, CSS, JavaScript; Server-Sent Events</td><td>No build step for judges; real-time one-way streaming fits the execution-log use case.</td></tr>
+  <tr><td>UI design</td><td>applecn design system (MIT)</td><td>Consistent, accessible Apple HIG tokens; light and dark modes; platform idiom switch.</td></tr>
+  <tr><td>AI model</td><td>Claude Haiku 5.5 via OpenRouter (Anthropic API supported)</td><td>Fast, low-cost, reliable structured output; provider layer allows switching models by configuration.</td></tr>
+  <tr><td>Testing</td><td>pytest</td><td>Unit and integration tests, including real CLI runs and timeout behaviour.</td></tr>
+</table>
+
+<!-- ============================== 13 ============================== -->
+<h2>13. Testing and Verification</h2>
+<p>The automated suite contains 21 tests covering: rejection of twelve classes of unsafe URLs (non-HTTP schemes, localhost, private and link-local
+ranges including cloud metadata addresses, embedded credentials, disallowed ports, local hostnames, malformed input); secret redaction; rule-based
+intent parsing for the mandatory prompt and for unsafe requests; the CLI contract (exit code 2 with valid JSON for forbidden targets, and a real
+crawl of example.com returning success); the guarantee that the child environment contains no API keys; orchestrator timeout enforcement with
+process termination; and the evidence check correctly verifying real quotes while flagging fabricated and missing ones.</p>
+<p>Manual end-to-end verification was performed through both the UI and the terminal (<code>curl</code> against the streaming endpoint) for the mandatory
+example.com prompt (success, exit 0, 2/2 claims verified), a six-page crawl of python.org (success, 6/6 claims verified), a five-page focused
+extraction from quotes.toscrape.com, a non-existent domain, an SSRF attempt and an unsafe shell request.</p>
+
+<!-- ============================== 14 ============================== -->
+<h2 class="pb">14. Requirement Traceability</h2>
+<table>
+  <tr><th style="width:30%">Challenge requirement</th><th>Implementation</th></tr>
+  <tr><td>Chat interface with natural-language input</td><td>frontend/index.html; free-text composer, example prompts, shareable <code>?q=</code> links.</td></tr>
+  <tr><td>Intent-understanding layer</td><td>intent.py and llm.py; schema-validated TaskSpec with rules fallback.</td></tr>
+  <tr><td>Backend orchestration selecting an approved CLI</td><td>orchestrator.py tool registry and task-to-tool mapping.</td></tr>
+  <tr><td>Real execution workflow</td><td>sitecrawl CLI performs live HTTP crawling and extraction.</td></tr>
+  <tr><td>Output capture (stdout, stderr, status)</td><td>Concurrent pumps, live stderr streaming, exit-code mapping, ExecutionResult.</td></tr>
+  <tr><td>Response layer with valid JSON</td><td>responder.py; round-trip validated JSON; status banner; JSON viewer.</td></tr>
+  <tr><td>Handling invalid input, failures, timeouts, inaccessible sites</td><td>Sections 6.6 and 10; explicit statuses for each case.</td></tr>
+  <tr><td>Do not pass raw text to an unrestricted shell</td><td>No shell; argument vector from typed fields.</td></tr>
+  <tr><td>Approved tools and input validation</td><td>Allow-list; security.py URL validation.</td></tr>
+  <tr><td>Least privilege and sandboxing</td><td>Clean environment, process group, rlimits, private working directory.</td></tr>
+  <tr><td>Timeouts, depth and page limits</td><td>90 s timeout, 25 pages, depth 3, size caps, rate limit.</td></tr>
+  <tr><td>Website content treated as untrusted</td><td>Prompt fencing, no tools during summarisation, HTML escaping.</td></tr>
+  <tr><td>No secrets in output or logs</td><td>Redaction and secret-free child environment.</td></tr>
+  <tr><td>Honest error and partial status</td><td>Success only with clean exit and valid JSON; evidence check.</td></tr>
+</table>
+
+<!-- ============================== 15 ============================== -->
+<h2>15. Deployment and Operation</h2>
+<p><b>Prerequisites:</b> Python 3.10 or later and internet access. <b>Setup:</b> clone the repository and run <code>./run.sh</code>, which creates a virtual environment,
+installs dependencies and starts the server on <code>http://localhost:8765</code>. <b>Configuration</b> is through a <code>.env</code> file (template in
+<code>.env.example</code>): <code>LLM_PROVIDER</code>, <code>OPENROUTER_API_KEY</code>, <code>OPENROUTER_MODEL</code>, optional <code>ANTHROPIC_API_KEY</code>,
+<code>USE_LLM</code> and <code>CLI_TIMEOUT_S</code>. Without a key the application runs fully in rules mode. <b>Health check:</b> <code>GET /api/health</code>
+reports the active engine and model. <b>Standalone CLI:</b> <code>python sitecrawl/cli.py https://example.com --max-pages 3</code>.</p>
+
+<!-- ============================== 16 ============================== -->
+<h2>16. Limitations and Roadmap</h2>
+<ul>
+  <li><b>JavaScript-rendered sites:</b> the current crawler parses static HTML. A browser-based tool (for example Crawl4AI or Playwright) can be added as a second registry entry.</li>
+  <li><b>Single-process job state:</b> jobs are tracked in memory. Production use would add a job queue (Celery or RQ) and persistent job history.</li>
+  <li><b>Sandboxing depth:</b> isolation currently relies on process-level controls. Container sandboxing (Docker, seccomp profiles, network egress policies) is the next step.</li>
+  <li><b>Evidence check scope:</b> verifies that quotes exist, not that interpretations are faithful. A future step is semantic entailment scoring alongside the exact match.</li>
+  <li><b>Multi-step chaining:</b> the registry supports multiple tools. Planned additions include broken-link checking and sitemap analysis, chained within one request.</li>
+</ul>
+
+<!-- ============================== 17 ============================== -->
+<h2>17. AI Usage Disclosure</h2>
+<p>At runtime, Claude Haiku 5.5 (accessed through the OpenRouter API) is used for intent interpretation and summarisation, always with schema-constrained,
+validated output and with a deterministic fallback. During development, Claude Code (Anthropic's AI coding assistant) was used to help with
+scaffolding, implementation, tests and documentation. The applecn design tokens are vendored unmodified under the MIT licence. The architecture, security
+design and every component have been reviewed by the author, who can explain all parts of the implementation.</p>
+
+<footer>CrawlPilot · System Architecture &amp; Technical Design · BuildSprint Round 2 · https://github.com/vineeethh/Workelite_Hackathon</footer>
+</body>
+</html>
