@@ -69,7 +69,7 @@ footer { font-size: 8pt; color: var(--label-3); text-align: center; margin-top: 
       <li>Architecture overview</li>
       <li>Component design</li>
       <li>End-to-end request lifecycle</li>
-      <li>CLI execution design</li>
+      <li>Working demonstration · CLI execution design</li>
       <li>Natural-language understanding</li>
       <li>Output processing and evidence check</li>
       <li>Security architecture</li>
@@ -205,6 +205,12 @@ user prompts; and the intelligence layer never chooses or constructs commands.</
   <tr><td>8</td><td>Process</td><td>The responder generates the summary and key points with evidence quotes, runs the deterministic evidence check, and assembles the final JSON (status, source, site, summary, insights, verification, contact, keywords, pages, errors, execution metadata).</td></tr>
   <tr><td>9</td><td>Respond</td><td>The chat shows a status banner (for example "Success – crawled 1 page in 0.7 s, exit code 0"), the summary with ✓ or ⚠ per key point, the evidence card and the JSON viewer.</td></tr>
 </table>
+<h2>Working Demonstration</h2>
+<p>The screenshots below are from a real run of the application. The request was <i>"Crawl 6 pages of https://www.python.org and summarise what the site offers, return JSON"</i>, run against the live site with Claude Haiku 5.5 through OpenRouter.</p>
+<div class="figure" style="padding:6px"><img src="img/demo-execution.png" style="width:100%;border-radius:10px;display:block"></div>
+<div class="caption">Figure 2. Execution in progress. The interpreted intent (via LLM), the execution plan, and the live output of the <code>sitecrawl</code> CLI process. The status chips show the process ID, timeout, exit code 0, duration (3.77 s), stdout size and the result of JSON validation.</div>
+<div class="figure" style="padding:6px;page-break-before:always"><img src="img/demo-result.png" style="width:100%;border-radius:10px;display:block"></div>
+<div class="caption">Figure 3. Verified result. A success banner reports 6 pages crawled with exit code 0. The summary is grounded in the crawled pages, the evidence check confirms 7 of 7 key points against verbatim quotes, and the structured JSON can be copied or downloaded.</div>
 <!-- ============================== 6 ============================== -->
 <h2>6. CLI Execution Design (Core of the Challenge)</h2>
 <h3>6.1 Tool selection and rationale</h3>
