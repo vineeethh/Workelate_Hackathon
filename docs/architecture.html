@@ -74,7 +74,7 @@ footer { font-size: 8pt; color: var(--label-3); text-align: center; margin-top: 
       <li>Output processing and evidence check</li>
       <li>Security architecture</li>
       <li>Reliability and error handling</li>
-      <li>Data contracts</li>
+      <li>Final JSON structure</li>
       <li>Technology stack and rationale</li>
       <li>Testing and verification</li>
       <li>Requirement traceability</li>
@@ -91,17 +91,7 @@ footer { font-size: 8pt; color: var(--label-3); text-align: center; margin-top: 
 the generated text is displayed. That pattern is unsuitable for practical requests that require real work,
 such as visiting websites, collecting data or running tools, because the model can only describe what it
 would do. It cannot do it, and it cannot prove that it did.</p>
-<p>CrawlPilot closes this gap. The language model is used only for what it is good at, understanding intent
-and writing summaries, while all execution is performed by a dedicated command-line tool that the backend
-starts as a separate operating-system process. Every execution is observable (live logs are streamed to
-the chat), bounded (timeouts, page and depth limits, resource limits) and verifiable (exit codes are mapped
-to explicit statuses and the output must pass JSON validation). A deterministic evidence check confirms that
-every key point in the AI-written summary is supported by a verbatim quote from the crawled pages.</p>
-<p>The system demonstrates the mandatory use case end to end: a user asks the chat to crawl a website,
-extract the important information, summarise it and return JSON; the backend runs the <code>sitecrawl</code>
-CLI against the live site and returns a readable summary plus schema-valid JSON, with an honest
-success, partial or failure status.</p>
-
+<p>CrawlPilot keeps the LLM for understanding and summarising, and performs all real work through a dedicated CLI process whose output, logs and exit code are captured and verified.</p>
 <h3>Key differentiators</h3>
 <ul>
   <li><b>Real CLI execution, not simulated output.</b> The backend starts a separate process, captures stdout,
@@ -189,46 +179,16 @@ user prompts; and the intelligence layer never chooses or constructs commands.</
 
 <!-- ============================== 4 ============================== -->
 <h2>4. Component Design</h2>
-<h3>4.1 Chat interface (frontend)</h3>
-<p>A single-page interface built with plain HTML, CSS and JavaScript, with no build step. It consumes the backend's Server-Sent
-Events stream and renders each stage of the pipeline as it happens: the interpreted intent, the execution plan, a
-terminal panel that shows the exact command and each log line emitted by the CLI, status chips (process ID,
-timeout, exit code and meaning, duration, output size, JSON validation), the answer with a status banner, an
-evidence-check card, and a syntax-highlighted JSON viewer with copy and download. All website-derived text is
-HTML-escaped before rendering to prevent cross-site scripting. Visual design uses the open-source applecn
-design system (Apple Human Interface Guidelines tokens), including a live Web, macOS and iOS idiom switch and light and dark modes.</p>
-
-<h3>4.2 API and pipeline (backend/app.py)</h3>
-<p>FastAPI exposes <code>POST /api/chat</code> (streams the pipeline), <code>POST /api/cancel/{job_id}</code> (terminates a running process),
-<code>GET /api/health</code> (reports the active engine without exposing secrets) and the static UI. The pipeline runs five stages in
-order: intent, validation, plan, execution, and response. It applies a per-client rate limit of ten requests per minute and
-cancels the child process automatically if the browser disconnects.</p>
-
-<h3>4.3 Intent layer (backend/intent.py, backend/llm.py)</h3>
-<p>Converts free text into a typed <code>TaskSpec</code>: task type, URL, summary and JSON flags, page and depth limits, an optional extraction focus and
-a one-line rationale. The primary engine is Claude Haiku 5.5 through OpenRouter, constrained to a JSON schema and validated with
-Pydantic. A deterministic rule-based parser is the fallback when no key is configured or the model output is invalid.</p>
-
-<h3>4.4 Security module (backend/security.py)</h3>
-<p>Validates and normalises URLs (scheme, length, characters, credentials, port allow-list, hostname rules), resolves DNS and rejects
-private, loopback, link-local, reserved and multicast addresses. It also provides <code>redact()</code>, which removes API-key patterns and
-the literal values of sensitive environment variables from any text before it is logged or returned.</p>
-
-<h3>4.5 Orchestrator (backend/orchestrator.py)</h3>
-<p>Holds the allow-list registry of approved tools. Each entry defines an argument-vector builder and an exit-code map. The orchestrator
-starts the process, pumps stdout and stderr concurrently, emits live events, enforces the wall-clock timeout, supports cancellation
-and returns a structured <code>ExecutionResult</code>. Section 6 describes it in detail.</p>
-
-<h3>4.6 Responder and evidence check (backend/responder.py, backend/verify.py)</h3>
-<p>Validates the captured output, produces the summary (LLM or extractive), runs the evidence check, assembles the final JSON
-document, and formats the chat answer with an explicit status. Section 8 describes it in detail.</p>
-
-<h3>4.7 Execution tool (sitecrawl/cli.py)</h3>
-<p>A purpose-built, standalone crawler CLI. It can be run directly from a terminal, which demonstrates that the chat is genuinely invoking
-an independent program. It respects robots.txt (including crawl-delay), traverses same-domain links breadth-first, skips
-binary assets, caps page size at 2 MB, and extracts the title, meta description, language, headings, readable text, links, emails, phone numbers,
-social profiles, navigation and top keywords.</p>
-
+<table>
+<tr><th style="width:26%">Component</th><th>Responsibility</th></tr>
+<tr><td>frontend/index.html</td><td>Chat UI: live CLI terminal, status chips, evidence card, JSON viewer, cancel. Escapes all scraped text.</td></tr>
+<tr><td>backend/app.py</td><td>FastAPI pipeline, SSE streaming, rate limit (10/min), cancel and health endpoints.</td></tr>
+<tr><td>intent.py + llm.py</td><td>Natural language to typed TaskSpec via Claude Haiku 5.5 (OpenRouter), schema-validated; rules fallback.</td></tr>
+<tr><td>security.py</td><td>URL and SSRF validation, secret redaction.</td></tr>
+<tr><td>orchestrator.py</td><td>Tool allow-list, argv builder, subprocess runner, timeout, cancel, output capture.</td></tr>
+<tr><td>responder.py + verify.py</td><td>Output validation, summary, evidence check, final JSON, honest status.</td></tr>
+<tr><td>sitecrawl/cli.py</td><td>Standalone crawler: robots.txt, limits, structured extraction, JSON on stdout, logs on stderr, exit codes.</td></tr>
+</table>
 <!-- ============================== 5 ============================== -->
 <h2 class="pb">5. End-to-End Request Lifecycle</h2>
 <p>The following sequence describes the mandatory demonstration request:
@@ -245,9 +205,6 @@ social profiles, navigation and top keywords.</p>
   <tr><td>8</td><td>Process</td><td>The responder generates the summary and key points with evidence quotes, runs the deterministic evidence check, and assembles the final JSON (status, source, site, summary, insights, verification, contact, keywords, pages, errors, execution metadata).</td></tr>
   <tr><td>9</td><td>Respond</td><td>The chat shows a status banner (for example "Success – crawled 1 page in 0.7 s, exit code 0"), the summary with ✓ or ⚠ per key point, the evidence card and the JSON viewer.</td></tr>
 </table>
-<p>Typical latency for the mandatory demo is under 10 seconds end to end, of which the crawl itself takes under one second
-and the remainder is the two LLM calls. A six-page crawl of a real site completes in roughly 5 to 15 seconds.</p>
-
 <!-- ============================== 6 ============================== -->
 <h2>6. CLI Execution Design (Core of the Challenge)</h2>
 <h3>6.1 Tool selection and rationale</h3>
@@ -272,10 +229,7 @@ in isolated mode (<code>-I</code>), which ignores environment-based module paths
 </ul>
 
 <h3>6.4 Output capture</h3>
-<p>stdout and stderr are read concurrently by two asynchronous tasks to avoid pipe-buffer deadlocks. Each stderr line is redacted and forwarded to
-the chat immediately. stdout is accumulated and parsed only after the process exits. The resulting <code>ExecutionResult</code> records the job ID,
-tool, displayed command, exit code, exit meaning, duration, parsed JSON, stderr tail, timeout and cancellation flags, parse error and stdout size.</p>
-
+<p>stdout and stderr are read concurrently; stderr lines stream live to the chat, stdout is parsed as JSON after exit, and the exit code, duration and stderr tail are recorded.</p>
 <h3>6.5 Exit-code contract</h3>
 <table>
   <tr><th style="width:12%">Code</th><th style="width:26%">Meaning</th><th>System behaviour</th></tr>
@@ -296,10 +250,7 @@ can display elapsed time. The CLI also enforces its own per-request timeout (10 
 
 <!-- ============================== 7 ============================== -->
 <h2 class="pb">7. Natural-Language Understanding</h2>
-<p>The intent layer turns ambiguous human language into a strictly typed task. The LLM receives a short system instruction stating that it
-may only classify the request against one available tool, must copy the URL exactly as written, must never invent a URL, and must
-classify anything other than crawling, summarising or extracting (for example running shell commands or accessing internal systems) as
-<code>unsupported</code>. The response must conform to the <code>TaskSpec</code> JSON schema and is validated with Pydantic before use.</p>
+<p>The LLM may only fill a fixed <code>TaskSpec</code> schema (task, URL, limits, outputs); the result is validated with Pydantic before use. Out-of-scope requests are classified as unsupported.</p>
 <h3>Post-validation safeguards</h3>
 <ul>
   <li><b>URL provenance check:</b> a URL returned by the model is kept only if it appears in the user's original message; otherwise the rule-based extractor is used.</li>
@@ -307,8 +258,6 @@ classify anything other than crawling, summarising or extracting (for example ru
   <li><b>No command authority:</b> the model's output is data. The mapping from task type to tool, and from fields to arguments, is fixed in code.</li>
   <li><b>Fallback:</b> if no key is configured, the API call fails, or the output does not validate, a deterministic parser extracts the URL, limits, output preferences and focus using regular expressions.</li>
 </ul>
-<p>The intent result, including the engine used (<code>llm</code> or <code>rules</code>) and the model's one-line rationale, is shown to the user in the chat for transparency.</p>
-
 <!-- ============================== 8 ============================== -->
 <h2>8. Output Processing and Evidence Check</h2>
 <h3>8.1 Validation</h3>
@@ -326,10 +275,6 @@ the crawled pages, checking the cited page first. No LLM participates in this st
 labelled <i>verified</i> or <i>unverified</i> (with a reason), and the chat shows the score, for example "6/6 verified against the crawled text".</p>
 <div class="callout"><b>Scope of the check:</b> it proves that the quoted text exists on the crawled site. It does not prove that the key point is a fair
 interpretation of the quote, so each quote is displayed beside its claim for human review.</div>
-<h3>8.4 Final JSON</h3>
-<p>The final document is serialised and parsed again (round-tripped) to guarantee syntactic validity, then passed through secret redaction before it reaches the
-client. It is always attached to the response for auditability and expanded by default when the user requested JSON.</p>
-
 <!-- ============================== 9 ============================== -->
 <h2 class="pb">9. Security Architecture</h2>
 <p>The security model assumes three untrusted inputs: the user's message, the model's output, and website content. Controls are layered so that no
@@ -366,17 +311,8 @@ single failure leads to unsafe execution.</p>
 </table>
 
 <!-- ============================== 11 ============================== -->
-<h2 class="pb">11. Data Contracts</h2>
-<h3>11.1 TaskSpec (intent output)</h3>
-<p><code>task_type</code> (crawl_website | help | unsupported), <code>url</code>, <code>want_summary</code>, <code>want_json</code>, <code>max_pages</code> (1–25),
-<code>max_depth</code> (0–3), <code>focus</code> (optional specific topic), <code>reasoning</code>.</p>
-<h3>11.2 sitecrawl stdout (CLI output)</h3>
-<p><code>tool</code>, <code>version</code>, <code>start_url</code>, <code>started_at</code>, <code>limits</code>, <code>robots</code> {checked, allowed},
-<code>status</code> (success | partial | failed), <code>pages[]</code> {url, depth, status_code, title, meta_description, language, headings, word_count,
-text_excerpt, links, images_count, emails, phones, social_links, nav_links}, <code>site</code> {title, description, language, emails, phones,
-social_links, nav_links, top_keywords}, <code>stats</code> {pages_crawled, pages_failed, pages_discovered, bytes_downloaded, duration_ms},
-<code>errors[]</code>.</p>
-<h3>11.3 Final response JSON (returned to the user)</h3>
+<h2>11. Final JSON Structure</h2>
+
 <table>
   <tr><th style="width:24%">Field</th><th>Content</th></tr>
   <tr><td><code>status</code></td><td>success, partial or failed, derived from the exit code and validation.</td></tr>
@@ -404,15 +340,7 @@ social_links, nav_links, top_keywords}, <code>stats</code> {pages_crawled, pages
 
 <!-- ============================== 13 ============================== -->
 <h2>13. Testing and Verification</h2>
-<p>The automated suite contains 21 tests covering: rejection of twelve classes of unsafe URLs (non-HTTP schemes, localhost, private and link-local
-ranges including cloud metadata addresses, embedded credentials, disallowed ports, local hostnames, malformed input); secret redaction; rule-based
-intent parsing for the mandatory prompt and for unsafe requests; the CLI contract (exit code 2 with valid JSON for forbidden targets, and a real
-crawl of example.com returning success); the guarantee that the child environment contains no API keys; orchestrator timeout enforcement with
-process termination; and the evidence check correctly verifying real quotes while flagging fabricated and missing ones.</p>
-<p>Manual end-to-end verification was performed through both the UI and the terminal (<code>curl</code> against the streaming endpoint) for the mandatory
-example.com prompt (success, exit 0, 2/2 claims verified), a six-page crawl of python.org (success, 6/6 claims verified), a five-page focused
-extraction from quotes.toscrape.com, a non-existent domain, an SSRF attempt and an unsafe shell request.</p>
-
+<p><b>21 automated tests</b> (pytest): unsafe-URL rejection (12 cases), secret redaction, intent parsing, CLI contract with a real crawl, secret-free child environment, timeout kill, and evidence-check verdicts. Manually verified end to end via UI and terminal on example.com, python.org and quotes.toscrape.com, plus bad-domain, SSRF and unsafe-command cases.</p>
 <!-- ============================== 14 ============================== -->
 <h2 class="pb">14. Requirement Traceability</h2>
 <table>
@@ -435,12 +363,7 @@ extraction from quotes.toscrape.com, a non-existent domain, an SSRF attempt and 
 
 <!-- ============================== 15 ============================== -->
 <h2>15. Deployment and Operation</h2>
-<p><b>Prerequisites:</b> Python 3.10 or later and internet access. <b>Setup:</b> clone the repository and run <code>./run.sh</code>, which creates a virtual environment,
-installs dependencies and starts the server on <code>http://localhost:8765</code>. <b>Configuration</b> is through a <code>.env</code> file (template in
-<code>.env.example</code>): <code>LLM_PROVIDER</code>, <code>OPENROUTER_API_KEY</code>, <code>OPENROUTER_MODEL</code>, optional <code>ANTHROPIC_API_KEY</code>,
-<code>USE_LLM</code> and <code>CLI_TIMEOUT_S</code>. Without a key the application runs fully in rules mode. <b>Health check:</b> <code>GET /api/health</code>
-reports the active engine and model. <b>Standalone CLI:</b> <code>python sitecrawl/cli.py https://example.com --max-pages 3</code>.</p>
-
+<p>Clone the repository, run <code>./run.sh</code>, open <code>http://localhost:8765</code>. Optional <code>.env</code> with <code>OPENROUTER_API_KEY</code>; without it the app runs in rules mode.</p>
 <!-- ============================== 16 ============================== -->
 <h2>16. Limitations and Roadmap</h2>
 <ul>
